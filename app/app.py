@@ -151,7 +151,13 @@ def show_clients():
         clients = cm.get_all_clients()
         if clients:
             df = pd.DataFrame(clients)
-            st.dataframe(df, use_container_width=True)
+            # Display a curated set of columns if they exist in the DB
+            desired = ['id','name','phone','email','city','country','type','discount_percent','credit_limit','total_purchases','profit_generated','last_order_date']
+            cols = [c for c in desired if c in df.columns]
+            if cols:
+                st.dataframe(df[cols], use_container_width=True)
+            else:
+                st.dataframe(df, use_container_width=True)
         else:
             st.info("Nu sunt clienți")
     
@@ -177,8 +183,8 @@ def show_clients():
                     "city": city,
                     "country": country,
                     "type": client_type,
-                    "discount": discount,
-                    "credit_limit": credit_limit,
+                    "discount_percent": float(discount),
+                    "credit_limit": float(credit_limit),
                     "observations": observations,
                     "created_at": datetime.now().isoformat()
                 }
