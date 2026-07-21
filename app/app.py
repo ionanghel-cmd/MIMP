@@ -343,8 +343,8 @@ def show_parts():
             sale_price = st.number_input("Preț Vânzare €", min_value=0.0)
             
             if st.form_submit_button("Salvează Piesă"):
-                profit = sale_price - (supplier_cost + transport_cost)
-                margin = (profit / sale_price * 100) if sale_price > 0 else 0
+                profit = float(sale_price) - (float(supplier_cost) + float(transport_cost))
+                margin = (profit / float(sale_price) * 100) if float(sale_price) > 0 else 0
                 
                 part_data = {
                     "oem_code": oem_code,
@@ -353,11 +353,11 @@ def show_parts():
                     "model": model,
                     "year": year,
                     "category": category,
-                    "supplier_cost": supplier_cost,
-                    "transport_cost": transport_cost,
-                    "sale_price": sale_price,
-                    "profit": profit,
-                    "margin": margin,
+                    "supplier_cost": float(supplier_cost),
+                    "transport_cost": float(transport_cost),
+                    "sale_price": float(sale_price),
+                    "profit": float(profit),
+                    "margin_percent": float(margin),
                     "created_at": datetime.now().isoformat()
                 }
                 
