@@ -25,3 +25,6 @@ sqlalchemy>=2.0.20
 # Optional (install if needed)
 # gunicorn for production when using WSGI
 gunicorn>=20.1.0
+
+# UI: interactive table
+streamlit-aggrid>=0.4.0

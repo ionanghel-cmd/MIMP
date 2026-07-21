@@ -13,6 +13,26 @@ import plotly.express as px
 from datetime import datetime, timedelta
 from app.managers import ClientManager, OrderManager, PartsManager, FinancialManager
 from app.database import get_supabase_client, init_db_pool
+# Optional AgGrid for nicer tables
+try:
+    from st_aggrid import AgGrid, GridOptionsBuilder
+    AGGRID_AVAILABLE = True
+except Exception:
+    AGGRID_AVAILABLE = False
+
+
+def render_table(df):
+    if df is None or (hasattr(df, 'empty') and df.empty):
+        st.info('No data')
+        return
+    if AGGRID_AVAILABLE:
+        gb = GridOptionsBuilder.from_dataframe(df)
+        gb.configure_pagination(enabled=True)
+        gb.configure_default_column(editable=False, groupable=True, sortable=True, filter=True)
+        gridOptions = gb.build()
+        AgGrid(df, gridOptions=gridOptions, enable_enterprise_modules=False, fit_columns_on_grid_load=True)
+    else:
+        st.dataframe(df, use_container_width=True)
 
 # Page config
 st.set_page_config(
@@ -107,7 +127,7 @@ def show_dashboard():
         st.subheader("📊 Comenzi Recente")
         if orders:
             df_orders = pd.DataFrame(orders[:10])
-            st.dataframe(df_orders, use_container_width=True)
+            render_table(df_orders)
         else:
             st.info("Nu sunt comenzi")
     
@@ -155,9 +175,9 @@ def show_clients():
             desired = ['id','name','phone','email','city','country','type','discount_percent','credit_limit','total_purchases','profit_generated','last_order_date']
             cols = [c for c in desired if c in df.columns]
             if cols:
-                st.dataframe(df[cols], use_container_width=True)
+                render_table(df[cols])
             else:
-                st.dataframe(df, use_container_width=True)
+                render_table(df)
         else:
             st.info("Nu sunt clienți")
     
@@ -217,7 +237,7 @@ def show_orders():
         
         if orders:
             df = pd.DataFrame(orders)
-            st.dataframe(df, use_container_width=True)
+            render_table(df)
         else:
             st.info("Nu sunt comenzi")
     
@@ -298,7 +318,7 @@ def show_parts():
             parts = pm.search_parts(search_term)
             if parts:
                 df = pd.DataFrame(parts)
-                st.dataframe(df, use_container_width=True)
+                render_table(df)
             else:
                 st.info("Nu s-au găsit piese")
         else:
