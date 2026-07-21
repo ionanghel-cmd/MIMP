@@ -189,8 +189,25 @@ def show_clients():
                         if c.get('observations'):
                             st.markdown(f"_Obs_: {c.get('observations')}")
                     with col2:
-                        if st.button('Vizualizează', key=f'view_{cid}'):
-                            st.write(dict(c))
+                        # Show details in a collapsed expander (clean UI, no raw dump)
+                        with st.expander('Detalii client'):
+                            # Present fields cleanly
+                            st.write(f"**Nume:** {name}")
+                            st.write(f"**Telefon:** {phone}")
+                            st.write(f"**Email:** {email}")
+                            st.write(f"**Oraș:** {city}")
+                            st.write(f"**Țară:** {c.get('country','')}")
+                            st.write(f"**Tip:** {c.get('type','')}")
+                            st.write(f"**Discount %:** {c.get('discount_percent',0)}")
+                            st.write(f"**Limita de credit:** €{c.get('credit_limit',0)}")
+                            if c.get('observations'):
+                                st.write(f"**Observații:** {c.get('observations')}")
+                            # Raw data for debugging (collapsed)
+                            with st.expander('Răspuns brut (pentru debugging)'):
+                                try:
+                                    st.json(dict(c))
+                                except Exception:
+                                    st.write(repr(c))
                         if st.button('Șterge', key=f'del_{cid}'):
                             ok = cm.delete_client(cid)
                             if ok:
@@ -212,8 +229,8 @@ def show_clients():
                 city = st.text_input("Oraș")
                 country = st.text_input("Țară")
                 client_type = st.selectbox("Tip", ["persoană", "service", "magazin", "dealer"])
-            discount = st.number_input("Discount %", min_value=0, max_value=100, value=0.0)
-            credit_limit = st.number_input("Limita de credit €", min_value=0.0, value=0.0)
+            discount = st.number_input("Discount %", min_value=0.0, max_value=100.0, value=0.0, format="%.2f")
+            credit_limit = st.number_input("Limita de credit €", min_value=0.0, value=0.0, format="%.2f")
             observations = st.text_area("Observații")
             
             if st.form_submit_button("Salvează Client"):
@@ -231,9 +248,14 @@ def show_clients():
                 }
                 
                 result = cm.add_client(client_data)
-                st.write('Result (raw):', result)
+                # Show user-friendly feedback; keep raw response collapsed for devs
                 if result:
                     st.success("✅ Client adăugat cu succes!")
+                    with st.expander('Răspuns brut (pentru debugging)'):
+                        try:
+                            st.json(result)
+                        except Exception:
+                            st.write(repr(result))
                     st.experimental_rerun()
                 else:
                     st.error("❌ Eroare la adăugarea clientului")
@@ -330,9 +352,13 @@ def show_orders():
                 }
                 
                 result = om.add_order(order_data)
-                st.write('Result (raw):', result)
                 if result:
                     st.success("✅ Comandă adăugată cu succes!")
+                    with st.expander('Răspuns brut (pentru debugging)'):
+                        try:
+                            st.json(result)
+                        except Exception:
+                            st.write(repr(result))
                     st.experimental_rerun()
                 else:
                     st.error("❌ Eroare la adăugarea comenzii")
@@ -421,9 +447,13 @@ def show_parts():
                 }
                 
                 result = pm.add_part(part_data)
-                st.write('Result (raw):', result)
                 if result:
                     st.success("✅ Piesă adăugată cu succes!")
+                    with st.expander('Răspuns brut (pentru debugging)'):
+                        try:
+                            st.json(result)
+                        except Exception:
+                            st.write(repr(result))
                     st.experimental_rerun()
                 else:
                     st.error("❌ Eroare la adăugarea piesei")
