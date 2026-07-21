@@ -11,6 +11,68 @@ except Exception:
     pd = None
 
 
+# Helpers: safe SQL operations that inspect the database schema and only use existing columns.
+# This prevents errors like "column X does not exist" when the local DB schema differs.
+def _get_table_columns_sql(table_name: str):
+    """Return a set of column names for a given table using the DB pool."""
+    try:
+        conn = get_db_conn()
+        cur = get_db_cursor(conn)
+        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = %s", (table_name,))
+        rows = cur.fetchall()
+        cur.close()
+        release_db_conn(conn)
+        # rows may be dicts (RealDictCursor) or tuples
+        return set([r.get('column_name') if isinstance(r, dict) else r[0] for r in rows])
+    except Exception as e:
+        # Non-fatal: return empty set to force supabase path or safe failure upstream
+        st.error(f"Error fetching table columns for {table_name}: {e}")
+        return set()
+
+
+def _insert_row_sql_safe(table_name: str, data: dict):
+    """Insert a row into table_name using only columns that exist in the DB."""
+    allowed = _get_table_columns_sql(table_name)
+    if not allowed:
+        raise RuntimeError(f"Could not determine columns for table {table_name}")
+    filtered = {k: v for k, v in data.items() if k in allowed}
+    if not filtered:
+        raise RuntimeError("No valid columns to insert after filtering by table schema")
+    cols = list(filtered.keys())
+    vals_placeholders = ["%s"] * len(cols)
+    params = [filtered[c] for c in cols]
+    sql = f"INSERT INTO {table_name} ({', '.join(cols)}) VALUES ({', '.join(vals_placeholders)}) RETURNING *"
+    conn = get_db_conn()
+    cur = get_db_cursor(conn)
+    cur.execute(sql, tuple(params))
+    row = cur.fetchone()
+    conn.commit()
+    cur.close()
+    release_db_conn(conn)
+    return row
+
+
+def _update_row_sql_safe(table_name: str, pk_name: str, pk_value, data: dict):
+    allowed = _get_table_columns_sql(table_name)
+    if not allowed:
+        raise RuntimeError(f"Could not determine columns for table {table_name}")
+    filtered = {k: v for k, v in data.items() if k in allowed and k != pk_name}
+    if not filtered:
+        raise RuntimeError("No valid columns to update after filtering by table schema")
+    set_parts = [f"{k} = %s" for k in filtered.keys()]
+    params = list(filtered.values())
+    params.append(pk_value)
+    sql = f"UPDATE {table_name} SET {', '.join(set_parts)} WHERE {pk_name} = %s RETURNING *"
+    conn = get_db_conn()
+    cur = get_db_cursor(conn)
+    cur.execute(sql, tuple(params))
+    row = cur.fetchone()
+    conn.commit()
+    cur.close()
+    release_db_conn(conn)
+    return row
+
+
 class ClientManager:
     def __init__(self):
         self.client = get_supabase_client()
