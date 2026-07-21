@@ -132,23 +132,9 @@ class ClientManager:
             except Exception as e:
                 st.error(f"Error adding client: {e}")
                 return None
-        # SQL fallback
+        # SQL fallback (safe)
         try:
-            cols = []
-            vals = []
-            params = []
-            for k, v in client_data.items():
-                cols.append(k)
-                vals.append('%s')
-                params.append(v)
-            sql = f"INSERT INTO clients ({', '.join(cols)}) VALUES ({', '.join(vals)}) RETURNING *"
-            conn = get_db_conn()
-            cur = get_db_cursor(conn)
-            cur.execute(sql, tuple(params))
-            row = cur.fetchone()
-            conn.commit()
-            cur.close()
-            release_db_conn(conn)
+            row = _insert_row_sql_safe('clients', client_data)
             return row
         except Exception as e:
             st.error(f"Error adding client (SQL): {e}")
@@ -164,20 +150,7 @@ class ClientManager:
                 st.error(f"Error updating client: {e}")
                 return None
         try:
-            set_parts = []
-            params = []
-            for k, v in client_data.items():
-                set_parts.append(f"{k} = %s")
-                params.append(v)
-            params.append(client_id)
-            sql = f"UPDATE clients SET {', '.join(set_parts)} WHERE id = %s RETURNING *"
-            conn = get_db_conn()
-            cur = get_db_cursor(conn)
-            cur.execute(sql, tuple(params))
-            row = cur.fetchone()
-            conn.commit()
-            cur.close()
-            release_db_conn(conn)
+            row = _update_row_sql_safe('clients', 'id', client_id, client_data)
             return row
         except Exception as e:
             st.error(f"Error updating client (SQL): {e}")
@@ -243,21 +216,7 @@ class OrderManager:
                 st.error(f"Error adding order: {e}")
                 return None
         try:
-            cols = []
-            vals = []
-            params = []
-            for k, v in order_data.items():
-                cols.append(k)
-                vals.append('%s')
-                params.append(v)
-            sql = f"INSERT INTO orders ({', '.join(cols)}) VALUES ({', '.join(vals)}) RETURNING *"
-            conn = get_db_conn()
-            cur = get_db_cursor(conn)
-            cur.execute(sql, tuple(params))
-            row = cur.fetchone()
-            conn.commit()
-            cur.close()
-            release_db_conn(conn)
+            row = _insert_row_sql_safe('orders', order_data)
             return row
         except Exception as e:
             st.error(f"Error adding order (SQL): {e}")
@@ -273,20 +232,7 @@ class OrderManager:
                 st.error(f"Error updating order: {e}")
                 return None
         try:
-            set_parts = []
-            params = []
-            for k, v in order_data.items():
-                set_parts.append(f"{k} = %s")
-                params.append(v)
-            params.append(order_id)
-            sql = f"UPDATE orders SET {', '.join(set_parts)} WHERE id = %s RETURNING *"
-            conn = get_db_conn()
-            cur = get_db_cursor(conn)
-            cur.execute(sql, tuple(params))
-            row = cur.fetchone()
-            conn.commit()
-            cur.close()
-            release_db_conn(conn)
+            row = _update_row_sql_safe('orders', 'id', order_id, order_data)
             return row
         except Exception as e:
             st.error(f"Error updating order (SQL): {e}")
