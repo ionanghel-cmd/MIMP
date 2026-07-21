@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 
 # Ensure project root is on sys.path so `import app.*` works when Streamlit runs app/app.py directly
@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime, timedelta
 from app.managers import ClientManager, OrderManager, PartsManager, FinancialManager
+from app.database import get_supabase_client, init_db_pool
 
 # Page config
 st.set_page_config(
@@ -20,6 +21,21 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Diagnostics: attempt lazy init and show status in sidebar
+try:
+    client = get_supabase_client()
+    if client is None:
+        pool_ok = init_db_pool()
+        if pool_ok:
+            st.sidebar.success("DB pool initialized (direct Postgres)")
+        else:
+            st.sidebar.warning("Supabase client and DB pool not initialized. Check Streamlit Secrets for SUPABASE_URL/SUPABASE_KEY or SUPABASE_DB_* variables.")
+    else:
+        st.sidebar.success("Supabase client initialized")
+except Exception as _e:
+    # Keep diagnostics non-fatal; show a simple message
+    st.sidebar.error(f"Diagnostics: error initializing DB/Supabase: {_e}")
 
 # Custom CSS
 st.markdown("""
