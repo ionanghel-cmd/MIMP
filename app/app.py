@@ -250,7 +250,7 @@ def show_orders():
     with tab1:
         status_filter = st.selectbox(
             "Filtrează după status",
-            ["toate", "pending", "confirmed", "shipped", "delivered", "cancelled"]
+            ["toate", "cerere", "ofertă trimisă", "confirmată", "comandată la furnizor", "în transport", "ajunsă", "livrată", "finalizată", "anulată"], index=0
         )
         
         if status_filter == "toate":
@@ -259,8 +259,29 @@ def show_orders():
             orders = om.get_orders_by_status(status_filter)
         
         if orders:
-            df = pd.DataFrame(orders)
-            render_table(df)
+            st.write(f"### Comenzi (total: {len(orders)})")
+            for o in orders:
+                oid = o.get('id') if isinstance(o, dict) or hasattr(o, 'get') else o[0]
+                client_name = o.get('client_name') if isinstance(o, dict) else o.get('client_name', '')
+                operator = o.get('operator', '') if isinstance(o, dict) else ''
+                status = o.get('status', '') if isinstance(o, dict) else ''
+                total = o.get('total_amount', 0) if isinstance(o, dict) else ''
+                with st.container():
+                    c1, c2 = st.columns([3,1])
+                    with c1:
+                        st.markdown(f"**Comandă {str(oid)[:8]}**  ")
+                        st.markdown(f"👤 Client: {client_name}  ")
+                        st.markdown(f"🧑‍💼 Operator: {operator}  ")
+                        st.markdown(f"📊 Status: {status}  ")
+                        st.markdown(f"💶 Total: €{total}")
+                    with c2:
+                        if st.button('Vizualizează', key=f'view_order_{oid}'):
+                            st.write(dict(o))
+                        if st.button('Șterge', key=f'del_order_{oid}'):
+                            ok = om.delete_order(oid)
+                            if ok:
+                                st.experimental_rerun()
+            st.divider()
         else:
             st.info("Nu sunt comenzi")
     
@@ -274,13 +295,8 @@ def show_orders():
             client_labels = []
             if clients:
                 for i, c in enumerate(clients):
-                    if isinstance(c, dict):
-                        cid = c.get('id')
-                        name = c.get('name') or f'Client {i}'
-                    else:
-                        # tuple/row fallback
-                        cid = c[0] if len(c) > 0 else None
-                        name = str(cid)
+                    cid = c.get('id') if isinstance(c, dict) or hasattr(c, 'get') else c[0]
+                    name = c.get('name') if isinstance(c, dict) or hasattr(c, 'get') else str(cid)
                     label = f"{name} — {str(cid)[:8]}"
                     client_map[label] = cid
                     client_labels.append(label)
@@ -289,27 +305,20 @@ def show_orders():
             else:
                 client_id = st.text_input("ID Client (UUID)")
 
-            operator = st.text_input("Operator")
-            status = st.selectbox("Status", [
-                "cerere", "ofertă trimisă", "confirmată", 
-                "comandată la furnizor", "în transport", "ajunsă", 
-                "livrată", "finalizată", "anulată"
-            ])
-            total_amount = st.number_input("Valoare totală €", min_value=0.0, format="%.2f")
-            profit = st.number_input("Profit €", min_value=0.0, format="%.2f")
+            cols = st.columns(2)
+            with cols[0]:
+                operator = st.text_input("Operator")
+                status = st.selectbox("Status", [
+                    "cerere", "ofertă trimisă", "confirmată", 
+                    "comandată la furnizor", "în transport", "ajunsă", 
+                    "livrată", "finalizată", "anulată"
+                ])
+            with cols[1]:
+                total_amount = st.number_input("Valoare totală €", min_value=0.0, format="%.2f")
+                profit = st.number_input("Profit €", min_value=0.0, format="%.2f")
             observations = st.text_area("Observații")
             
             if st.form_submit_button("Salvează Comandă"):
-                # Tolerate numeric selection (index) or UUID strings
-                if isinstance(client_id, str) and client_id.isdigit():
-                    try:
-                        idx = int(client_id)
-                        if 0 <= idx < len(clients):
-                            c = clients[idx]
-                            client_id = c.get('id') if isinstance(c, dict) else c[0]
-                    except Exception:
-                        pass
-
                 order_data = {
                     "client_id": client_id,
                     "operator": operator,
@@ -321,8 +330,10 @@ def show_orders():
                 }
                 
                 result = om.add_order(order_data)
+                st.write('Result (raw):', result)
                 if result:
                     st.success("✅ Comandă adăugată cu succes!")
+                    st.experimental_rerun()
                 else:
                     st.error("❌ Eroare la adăugarea comenzii")
 
@@ -340,27 +351,51 @@ def show_parts():
         if search_term:
             parts = pm.search_parts(search_term)
             if parts:
-                df = pd.DataFrame(parts)
-                render_table(df)
+                st.write(f"### Piese găsite: {len(parts)}")
+                for p in parts:
+                    pid = p.get('id') if isinstance(p, dict) or hasattr(p, 'get') else p[0]
+                    oem = p.get('oem_code', '')
+                    brand = p.get('brand', '')
+                    model = p.get('model', '')
+                    price = p.get('sale_price', 0)
+                    stock = p.get('stock_quantity', 0)
+                    with st.container():
+                        c1, c2 = st.columns([3,1])
+                        with c1:
+                            st.markdown(f"**{oem} — {brand} {model}**")
+                            st.markdown(f"💶 Preț: €{price}  ")
+                            st.markdown(f"📦 Stoc: {stock}")
+                        with c2:
+                            if st.button('Vizualizează', key=f'view_part_{pid}'):
+                                st.write(dict(p))
+                            if st.button('Șterge', key=f'del_part_{pid}'):
+                                ok = pm.delete_part(pid)
+                                if ok:
+                                    st.experimental_rerun()
+                st.divider()
             else:
                 st.info("Nu s-au găsit piese")
         else:
             parts = pm.get_all_parts()
             if parts:
+                st.write(f"### Toate piesele (total: {len(parts)})")
                 df = pd.DataFrame(parts)
-                st.dataframe(df, use_container_width=True)
+                render_table(df)
     
     with tab2:
         st.subheader("Adaugă Piesă Nouă")
         
         with st.form("new_part_form"):
-            oem_code = st.text_input("Cod OEM")
-            supplier_code = st.text_input("Cod Furnizor")
-            brand = st.text_input("Marcă")
-            model = st.text_input("Model")
-            year = st.text_input("An")
-            category = st.selectbox("Categorie", ["motor", "frâne", "suspensie", "electric", "alt"])
-            
+            cols = st.columns(2)
+            with cols[0]:
+                oem_code = st.text_input("Cod OEM")
+                supplier_code = st.text_input("Cod Furnizor")
+                brand = st.text_input("Marcă")
+                model = st.text_input("Model")
+            with cols[1]:
+                year = st.text_input("An")
+                category = st.selectbox("Categorie", ["motor", "frâne", "suspensie", "electric", "alt"])
+                stock_quantity = st.number_input("Cantitate în stoc", min_value=0, value=0)
             supplier_cost = st.number_input("Cost Furnizor €", min_value=0.0)
             transport_cost = st.number_input("Cost Transport €", min_value=0.0)
             sale_price = st.number_input("Preț Vânzare €", min_value=0.0)
@@ -381,12 +416,15 @@ def show_parts():
                     "sale_price": float(sale_price),
                     "profit": float(profit),
                     "margin_percent": float(margin),
+                    "stock_quantity": int(stock_quantity),
                     "created_at": datetime.now().isoformat()
                 }
                 
                 result = pm.add_part(part_data)
+                st.write('Result (raw):', result)
                 if result:
                     st.success("✅ Piesă adăugată cu succes!")
+                    st.experimental_rerun()
                 else:
                     st.error("❌ Eroare la adăugarea piesei")
 
