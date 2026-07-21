@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  moto-erp:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - STREAMLIT_SERVER_HEADLESS=true
+    volumes:
+      - ./app:/app/app
+    restart: unless-stopped
