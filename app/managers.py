@@ -1,7 +1,14 @@
 import streamlit as st
 from app.database import get_supabase_client
 from datetime import datetime, timedelta
-import pandas as pd
+
+# Optional dependency: pandas is used for some data transformations in the app UI.
+# Import lazily to avoid startup failures if pandas isn't yet installed in the host
+# environment (Streamlit will install requirements but this protects early imports).
+try:
+    import pandas as pd
+except Exception:
+    pd = None
 
 class ClientManager:
     def __init__(self):
