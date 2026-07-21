@@ -170,14 +170,32 @@ def show_clients():
     with tab1:
         clients = cm.get_all_clients()
         if clients:
-            df = pd.DataFrame(clients)
-            # Display a curated set of columns if they exist in the DB
-            desired = ['id','name','phone','email','city','country','type','discount_percent','credit_limit','total_purchases','profit_generated','last_order_date']
-            cols = [c for c in desired if c in df.columns]
-            if cols:
-                render_table(df[cols])
-            else:
-                render_table(df)
+            # Render as cards for a nicer frontend
+            st.write(f"### Clienți (total: {len(clients)})")
+            for c in clients:
+                # support RealDictRow and dict
+                cid = c.get('id') if isinstance(c, dict) or hasattr(c, 'get') else c['id'] if 'id' in c else None
+                name = c.get('name') if isinstance(c, dict) or hasattr(c, 'get') else c.get('name', '')
+                phone = c.get('phone', '') if isinstance(c, dict) or hasattr(c, 'get') else c.get('phone', '')
+                email = c.get('email', '') if isinstance(c, dict) or hasattr(c, 'get') else c.get('email', '')
+                city = c.get('city', '') if isinstance(c, dict) or hasattr(c, 'get') else c.get('city', '')
+                with st.container():
+                    col1, col2 = st.columns([3,1])
+                    with col1:
+                        st.markdown(f"**{name or 'Nume lipsă'}**  ")
+                        st.markdown(f"📞 {phone}  ")
+                        st.markdown(f"✉️ {email}  ")
+                        st.markdown(f"📍 {city}  ")
+                        if c.get('observations'):
+                            st.markdown(f"_Obs_: {c.get('observations')}")
+                    with col2:
+                        if st.button('Vizualizează', key=f'view_{cid}'):
+                            st.write(dict(c))
+                        if st.button('Șterge', key=f'del_{cid}'):
+                            ok = cm.delete_client(cid)
+                            if ok:
+                                st.experimental_rerun()
+            st.divider()
         else:
             st.info("Nu sunt clienți")
     
@@ -185,14 +203,17 @@ def show_clients():
         st.subheader("Adaugă Client Nou")
         
         with st.form("new_client_form"):
-            name = st.text_input("Nume")
-            phone = st.text_input("Telefon")
-            email = st.text_input("Email")
-            city = st.text_input("Oraș")
-            country = st.text_input("Țară")
-            client_type = st.selectbox("Tip", ["persoană", "service", "magazin", "dealer"])
-            discount = st.number_input("Discount %", min_value=0, max_value=100)
-            credit_limit = st.number_input("Limita de credit €", min_value=0)
+            cols = st.columns(2)
+            with cols[0]:
+                name = st.text_input("Nume")
+                phone = st.text_input("Telefon")
+                email = st.text_input("Email")
+            with cols[1]:
+                city = st.text_input("Oraș")
+                country = st.text_input("Țară")
+                client_type = st.selectbox("Tip", ["persoană", "service", "magazin", "dealer"])
+            discount = st.number_input("Discount %", min_value=0, max_value=100, value=0.0)
+            credit_limit = st.number_input("Limita de credit €", min_value=0.0, value=0.0)
             observations = st.text_area("Observații")
             
             if st.form_submit_button("Salvează Client"):
@@ -210,8 +231,10 @@ def show_clients():
                 }
                 
                 result = cm.add_client(client_data)
+                st.write('Result (raw):', result)
                 if result:
                     st.success("✅ Client adăugat cu succes!")
+                    st.experimental_rerun()
                 else:
                     st.error("❌ Eroare la adăugarea clientului")
 
