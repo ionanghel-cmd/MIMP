@@ -194,6 +194,7 @@ def show_orders():
     st.title("📦 Comenzi")
     
     om = OrderManager()
+    cm = ClientManager()
     
     tab1, tab2 = st.tabs(["📋 Lista Comenzi", "➕ Adaugă Comandă"])
     
@@ -218,24 +219,54 @@ def show_orders():
         st.subheader("Adaugă Comandă Nouă")
         
         with st.form("new_order_form"):
-            client_id = st.text_input("ID Client")
+            # Choose client from existing clients (returns UUID)
+            clients = cm.get_all_clients()
+            client_map = {}
+            client_labels = []
+            if clients:
+                for i, c in enumerate(clients):
+                    if isinstance(c, dict):
+                        cid = c.get('id')
+                        name = c.get('name') or f'Client {i}'
+                    else:
+                        # tuple/row fallback
+                        cid = c[0] if len(c) > 0 else None
+                        name = str(cid)
+                    label = f"{name} — {str(cid)[:8]}"
+                    client_map[label] = cid
+                    client_labels.append(label)
+                client_label = st.selectbox("Client", client_labels)
+                client_id = client_map.get(client_label)
+            else:
+                client_id = st.text_input("ID Client (UUID)")
+
             operator = st.text_input("Operator")
             status = st.selectbox("Status", [
                 "cerere", "ofertă trimisă", "confirmată", 
                 "comandată la furnizor", "în transport", "ajunsă", 
                 "livrată", "finalizată", "anulată"
             ])
-            total_amount = st.number_input("Valoare totală €", min_value=0.0)
-            profit = st.number_input("Profit €", min_value=0.0)
+            total_amount = st.number_input("Valoare totală €", min_value=0.0, format="%.2f")
+            profit = st.number_input("Profit €", min_value=0.0, format="%.2f")
             observations = st.text_area("Observații")
             
             if st.form_submit_button("Salvează Comandă"):
+                # Tolerate numeric selection (index) or UUID strings
+                if isinstance(client_id, str) and client_id.isdigit():
+                    try:
+                        idx = int(client_id)
+                        if 0 <= idx < len(clients):
+                            c = clients[idx]
+                            client_id = c.get('id') if isinstance(c, dict) else c[0]
+                    except Exception:
+                        pass
+
                 order_data = {
                     "client_id": client_id,
                     "operator": operator,
                     "status": status,
-                    "total_amount": total_amount,
-                    "profit": profit,
+                    "total_amount": float(total_amount),
+                    "profit": float(profit),
                     "observations": observations,
                     "created_at": datetime.now().isoformat()
                 }
