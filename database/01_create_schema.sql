@@ -180,18 +180,18 @@ CREATE TABLE IF NOT EXISTS order_documents (
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_clients_email ON clients(email);
-CREATE INDEX idx_clients_phone ON clients(phone);
-CREATE INDEX idx_orders_client_id ON orders(client_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_created_at ON orders(created_at);
-CREATE INDEX idx_parts_oem_code ON parts(oem_code);
-CREATE INDEX idx_parts_brand ON parts(brand);
-CREATE INDEX idx_parts_category ON parts(category);
-CREATE INDEX idx_transport_order_id ON transport(order_id);
-CREATE INDEX idx_invoices_order_id ON invoices(order_id);
-CREATE INDEX idx_expenses_category ON expenses(category);
-CREATE INDEX idx_expenses_date ON expenses(expense_date);
+CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email);
+CREATE INDEX IF NOT EXISTS idx_clients_phone ON clients(phone);
+CREATE INDEX IF NOT EXISTS idx_orders_client_id ON orders(client_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_parts_oem_code ON parts(oem_code);
+CREATE INDEX IF NOT EXISTS idx_parts_brand ON parts(brand);
+CREATE INDEX IF NOT EXISTS idx_parts_category ON parts(category);
+CREATE INDEX IF NOT EXISTS idx_transport_order_id ON transport(order_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_order_id ON invoices(order_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
+CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(expense_date);
 
 -- Enable RLS (Row Level Security) if needed
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
