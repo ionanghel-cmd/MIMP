@@ -2,9 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routes import router
+from app.auth import router as auth_router   # ← Adăugat
 import uvicorn
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 app = FastAPI(title="OEM Parts ERP", version="1.0")
@@ -21,6 +23,7 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 app.include_router(router, prefix="/api")
+app.include_router(auth_router, prefix="/api")   # ← Adăugat aici
 
 @app.get("/")
 async def root():
