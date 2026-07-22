@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copiază tot proiectul
+# Copiază tot
 COPY . /app
 
 # Backend
