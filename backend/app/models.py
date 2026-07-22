@@ -1,8 +1,11 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum
-from sqlalchemy.orm import relationship
-from .database import Base
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import declarative_base, relationship
+import uuid
 import enum
 from datetime import date
+
+Base = declarative_base()
 
 class OrderStatus(str, enum.Enum):
     CERERE = "Cerere"
@@ -17,7 +20,7 @@ class OrderStatus(str, enum.Enum):
 
 class Client(Base):
     __tablename__ = "clients"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     nume = Column(String, index=True)
     telefon = Column(String, unique=True, index=True)
     email = Column(String)
@@ -30,7 +33,7 @@ class Client(Base):
 
 class Produs(Base):
     __tablename__ = "produse"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     cod_oem = Column(String, unique=True, index=True)
     cod_furnizor = Column(String)
     marca = Column(String)
@@ -44,10 +47,10 @@ class Produs(Base):
 
 class Comanda(Base):
     __tablename__ = "comenzi"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     data = Column(Date, default=date.today)
-    client_id = Column(Integer, ForeignKey("clients.id"))
-    status = Column(Enum(OrderStatus), default=OrderStatus.CERERE)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))
+    status = Column(SQLEnum(OrderStatus), default=OrderStatus.CERERE)
     observatii = Column(String)
     total_profit = Column(Float, default=0.0)
 
