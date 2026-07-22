@@ -2,11 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copiază requirements întâi (cache optimizare)
+# Copiază requirements
 COPY backend/requirements.txt .
+
+# Instalează
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiază restul codului
+# Copiază tot backend-ul
 COPY backend/ .
 
 EXPOSE 8000
