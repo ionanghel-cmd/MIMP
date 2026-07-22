@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, String, Float, Date, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 import uuid
@@ -35,13 +35,8 @@ class Produs(Base):
     __tablename__ = "produse"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     cod_oem = Column(String, unique=True, index=True)
-    cod_furnizor = Column(String)
     marca = Column(String)
-    model = Column(String)
-    an = Column(String)
-    categorie = Column(String)
     cost_furnizor = Column(Float)
-    cost_transport_unit = Column(Float, default=0.0)
     pret_vanzare = Column(Float)
     profit = Column(Float)
 
