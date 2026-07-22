@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY frontend/package*.json ./frontend/
 RUN apt-get update && apt-get install -y nodejs npm && cd frontend && npm install
 
-COPY . /app
+COPY frontend/ ./frontend/
 RUN cd frontend && npm run build
 
 # Backend cod
