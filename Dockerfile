@@ -2,14 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copiază tot
+# Copiază tot proiectul
 COPY . /app
 
 # Backend
 RUN pip install --no-cache-dir -r backend/requirements.txt
 
 # Frontend
-RUN apt-get update && apt-get install -y nodejs npm && cd frontend && npm install && npm run build
+RUN apt-get update && apt-get install -y nodejs npm && \
+    cd frontend && npm install && npm run build
 
 EXPOSE 8000
 
