@@ -6,6 +6,8 @@ from app.routes import router
 from app.auth import router as auth_router
 import uvicorn
 import os
+import sys
+sys.path.insert(0, '/app/backend')
 
 app = FastAPI(title="OEM Parts ERP")
 
