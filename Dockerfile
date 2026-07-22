@@ -6,15 +6,10 @@ WORKDIR /app
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Frontend
-COPY frontend/package*.json ./frontend/
-RUN apt-get update && apt-get install -y nodejs npm && cd frontend && npm install
+# Frontend - copiază tot
+COPY . /app
 
-COPY frontend/ ./frontend/
-RUN cd frontend && npm run build
-
-# Backend cod
-COPY backend/ .
+RUN apt-get update && apt-get install -y nodejs npm && cd frontend && npm install && npm run build
 
 EXPOSE 8000
 
