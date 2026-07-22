@@ -1,15 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.database import engine, Base
 from app.routes import router
-from app.auth import router as auth_router   # ← Adăugat
+from app.auth import router as auth_router
 import uvicorn
-import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-app = FastAPI(title="OEM Parts ERP", version="1.0")
+app = FastAPI(title="OEM Parts ERP")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,20 +17,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Creare tabele
 Base.metadata.create_all(bind=engine)
 
 app.include_router(router, prefix="/api")
-app.include_router(auth_router, prefix="/api")   # ← Adăugat aici
+app.include_router(auth_router, prefix="/api")
 
-@app.get("/")
-async def root():
-    return {"message": "OEM Parts ERP Backend - Rulează cu succes!"}
-    from fastapi.staticfiles import StaticFiles
-
-# Servește frontend-ul
+# Servește frontend-ul React
 if os.path.exists("frontend/dist"):
     app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
 
+@app.get("/api/")
+async def root():
+    return {"message": "OEM Parts ERP Backend - Rulează cu succes!"}
+
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)
