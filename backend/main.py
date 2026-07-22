@@ -28,6 +28,11 @@ app.include_router(auth_router, prefix="/api")   # ← Adăugat aici
 @app.get("/")
 async def root():
     return {"message": "OEM Parts ERP Backend - Rulează cu succes!"}
+    from fastapi.staticfiles import StaticFiles
+
+# Servește frontend-ul
+if os.path.exists("frontend/dist"):
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
