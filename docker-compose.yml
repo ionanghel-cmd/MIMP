@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres.xswdxxwfmxrdygcrrapi
+      POSTGRES_PASSWORD: Jgsly777!@#$
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:Jgsly777!@#$@db.xswdxxwfmxrdygcrrapi.supabase.co:5432/postgres
+      SECRET_KEY: sb_publishable_0Su6Yyhg5YvBKI9R-5WABQ_zG-QraQe
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+
+volumes:
+  postgres_data:
