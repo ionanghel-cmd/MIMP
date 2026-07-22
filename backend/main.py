@@ -22,9 +22,8 @@ Base.metadata.create_all(bind=engine)
 app.include_router(router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 
-# Servește frontend-ul React
-if os.path.exists("frontend/dist"):
-    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
+# Servește frontend
+app.mount("/", StaticFiles(directory="/app/frontend/dist", html=True), name="static")
 
 @app.get("/api/")
 async def root():
