@@ -21,14 +21,11 @@ class OrderStatus(str, enum.Enum):
 class Client(Base):
     __tablename__ = "clients"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    nume = Column(String, nullable=False, index=True)
-    telefon = Column(String, unique=True, index=True)
+    nume = Column(String, nullable=False)
+    telefon = Column(String, unique=True)
     email = Column(String)
     oras = Column(String)
     tip = Column(String, default="persoana")
-    observatii = Column(Text)
-
-    comenzi = relationship("Comanda", back_populates="client")
 
 class Comanda(Base):
     __tablename__ = "comenzi"
