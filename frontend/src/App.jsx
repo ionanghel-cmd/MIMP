@@ -15,6 +15,7 @@ function App() {
   const [showClientForm, setShowClientForm] = useState(false);
   const [showComandaForm, setShowComandaForm] = useState(false);
   const [editingComanda, setEditingComanda] = useState(null);
+  const [selectedComanda, setSelectedComanda] = useState(null);
 
   const [clientForm, setClientForm] = useState({
     nume: '',
@@ -219,24 +220,30 @@ function App() {
                 </div>
               ) : (
                 comenzi.map((c) => (
-                  <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+                  <div
+                    key={c.id}
+                    className="bg-gray-900 border border-gray-800 rounded-2xl p-6 cursor-pointer hover:border-emerald-600 transition"
+                    onClick={() => setSelectedComanda(c)}
+                  >
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="text-xl font-semibold">#{c.id?.slice(0, 8)}</h3>
+                        <p className="text-emerald-400 font-medium mt-1">{c.client_nume || 'Client necunoscut'}</p>
                         <p className="text-gray-400 text-sm">{c.data} • {c.status}</p>
                         {c.observatii && (
                           <p className="text-sm text-gray-500 mt-1">📝 {c.observatii}</p>
                         )}
                       </div>
-                      <div className="text-right flex flex-col items-end gap-2">
+                      <div className="text-right">
                         <p className="text-emerald-500 font-bold text-lg">{c.profit} € profit</p>
                         <p className="text-sm text-gray-400">Total: {c.total_vanzare} €</p>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setEditingComanda(c);
                             setEditForm({ status: c.status || 'Cerere', observatii: c.observatii || '' });
                           }}
-                          className="text-sm bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg"
+                          className="text-sm bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg mt-2"
                         >
                           Editează
                         </button>
@@ -524,6 +531,79 @@ function App() {
               <button onClick={() => setEditingComanda(null)} className="bg-gray-700 px-6 py-3 rounded-xl">
                 Anulează
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== DETALII COMANDĂ ========== */}
+      {selectedComanda && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold">Comandă #{selectedComanda.id?.slice(0, 8)}</h2>
+                <p className="text-emerald-400 mt-1">{selectedComanda.client_nume} • {selectedComanda.client_telefon}</p>
+                <p className="text-gray-400 text-sm">{selectedComanda.data} • {selectedComanda.status}</p>
+              </div>
+              <button onClick={() => setSelectedComanda(null)}>
+                <X size={24} />
+              </button>
+            </div>
+
+            {selectedComanda.observatii && (
+              <div className="bg-gray-800 rounded-xl p-4 mb-6">
+                <p className="text-sm text-gray-400">Observații:</p>
+                <p>{selectedComanda.observatii}</p>
+              </div>
+            )}
+
+            <h3 className="font-semibold mb-4">Piese comandate</h3>
+
+            {selectedComanda.piese && selectedComanda.piese.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-400 border-b border-gray-700">
+                    <th className="pb-3">Cod OEM</th>
+                    <th className="pb-3">Denumire</th>
+                    <th className="pb-3">Cant</th>
+                    <th className="pb-3">Preț cumpărare</th>
+                    <th className="pb-3">Cost livrare</th>
+                    <th className="pb-3">Preț vânzare</th>
+                    <th className="pb-3">Profit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedComanda.piese.map((p, i) => (
+                    <tr key={i} className="border-b border-gray-800">
+                      <td className="py-3">{p.cod_oem}</td>
+                      <td className="py-3">{p.denumire}</td>
+                      <td className="py-3">{p.cantitate}</td>
+                      <td className="py-3">{p.pret_cumparare} €</td>
+                      <td className="py-3">{p.cost_livrare} €</td>
+                      <td className="py-3">{p.pret_vanzare} €</td>
+                      <td className="py-3 text-emerald-500 font-medium">{p.profit} €</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-gray-400">Nu există piese pe această comandă.</p>
+            )}
+
+            <div className="mt-8 grid grid-cols-3 gap-4">
+              <div className="bg-gray-800 rounded-xl p-4">
+                <p className="text-sm text-gray-400">Cost Transport</p>
+                <p className="text-xl font-bold">{selectedComanda.cost_transport_total} €</p>
+              </div>
+              <div className="bg-gray-800 rounded-xl p-4">
+                <p className="text-sm text-gray-400">Total Vânzare</p>
+                <p className="text-xl font-bold">{selectedComanda.total_vanzare} €</p>
+              </div>
+              <div className="bg-gray-800 rounded-xl p-4">
+                <p className="text-sm text-gray-400">Profit</p>
+                <p className="text-xl font-bold text-emerald-500">{selectedComanda.profit} €</p>
+              </div>
             </div>
           </div>
         </div>
