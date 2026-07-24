@@ -50,3 +50,10 @@ class ComandaPiesa(Base):
     cost_livrare = Column(Float, default=0.0)
     pret_vanzare = Column(Float)
     profit = Column(Float, default=0.0)
+
+class User(Base):
+    __tablename__ = "erp_users"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(String, default="operator")
