@@ -27,6 +27,10 @@ class ComandaCreate(BaseModel):
     observatii: Optional[str] = None
     piese: List[PiesaCreate]
 
+class ComandaUpdate(BaseModel):
+    status: Optional[str] = None
+    observatii: Optional[str] = None
+
 @router.get("/clients/")
 def get_clients(db: Session = Depends(get_db)):
     return db.query(Client).all()
@@ -35,7 +39,7 @@ def get_clients(db: Session = Depends(get_db)):
 def create_client(client: ClientCreate, db: Session = Depends(get_db)):
     try:
         db_client = Client(
-            nume=client.name,          # ← mapăm name → nume
+            nume=client.name,
             telefon=client.telefon,
             email=client.email,
             oras=client.oras,
@@ -52,14 +56,15 @@ def create_client(client: ClientCreate, db: Session = Depends(get_db)):
 @router.get("/comenzi/")
 def get_comenzi(db: Session = Depends(get_db)):
     comenzi = db.query(Comanda).order_by(Comanda.data.desc()).all()
-    
+   
     result = []
     for c in comenzi:
         client = db.query(Client).filter(Client.id == c.client_id).first()
         piese = db.query(ComandaPiesa).filter(ComandaPiesa.comanda_id == c.id).all()
-        
+       
         result.append({
             "id": str(c.id),
+            "numar": c.numar,
             "data": str(c.data),
             "status": c.status.value if c.status else "Cerere",
             "observatii": c.observatii,
@@ -86,10 +91,15 @@ def get_comenzi(db: Session = Depends(get_db)):
 @router.post("/comenzi/")
 def create_comanda(data: ComandaCreate, db: Session = Depends(get_db)):
     try:
+        # Generăm numărul următor (începe de la 1000)
+        last = db.query(Comanda).order_by(Comanda.numar.desc()).first()
+        next_numar = (last.numar + 1) if last and last.numar else 1000
+
         total_cant = sum(p.cantitate for p in data.piese) or 1
         cost_per_unit = data.cost_transport_total / total_cant
 
         comanda = Comanda(
+            numar=next_numar,
             client_id=data.client_id,
             cost_transport_total=data.cost_transport_total,
             observatii=data.observatii,
@@ -130,19 +140,6 @@ def create_comanda(data: ComandaCreate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/dashboard/")
-def get_dashboard(db: Session = Depends(get_db)):
-    comenzi = db.query(Comanda).all()
-    return {
-        "profit_total": round(sum(c.profit or 0 for c in comenzi), 2),
-        "comenzi_totale": len(comenzi),
-        "in_transport": len([c for c in comenzi if str(c.status) == "In transport"]),
-        "clienti": db.query(Client).count()
-    }
-class ComandaUpdate(BaseModel):
-    status: Optional[str] = None
-    observatii: Optional[str] = None
-
 @router.put("/comenzi/{comanda_id}")
 def update_comanda(comanda_id: str, data: ComandaUpdate, db: Session = Depends(get_db)):
     comanda = db.query(Comanda).filter(Comanda.id == comanda_id).first()
@@ -150,11 +147,9 @@ def update_comanda(comanda_id: str, data: ComandaUpdate, db: Session = Depends(g
         raise HTTPException(status_code=404, detail="Comanda nu există")
 
     if data.status:
-        # Convertim string-ul în OrderStatus
         try:
             comanda.status = OrderStatus(data.status)
-        except Value:
-            # Dacă nu e exact enum, încercăm să mapăm
+        except ValueError:
             status_map = {
                 "Cerere": OrderStatus.CERERE,
                 "Oferta trimisa": OrderStatus.OFERTA,
@@ -174,3 +169,13 @@ def update_comanda(comanda_id: str, data: ComandaUpdate, db: Session = Depends(g
     db.commit()
     db.refresh(comanda)
     return comanda
+
+@router.get("/dashboard/")
+def get_dashboard(db: Session = Depends(get_db)):
+    comenzi = db.query(Comanda).all()
+    return {
+        "profit_total": round(sum(c.profit or 0 for c in comenzi), 2),
+        "comenzi_totale": len(comenzi),
+        "in_transport": len([c for c in comenzi if str(c.status) == "In transport"]),
+        "clienti": db.query(Client).count()
+    }
