@@ -50,26 +50,31 @@ function App() {
   };
 
   // ==================== ADAUGĂ CLIENT ====================
-await axios.post(`${API_URL}/clients/`, {
-  name: clientForm.nume,
-  telefon: clientForm.telefon,
-  email: clientForm.email,
-  oras: clientForm.oras,
-  tip: clientForm.tip
-});
-    setLoading(true);
-    try {
-      await axios.post(`${API_URL}/clients/`, clientForm);
-      alert('Client adăugat cu succes!');
-      setShowClientForm(false);
-      setClientForm({ nume: '', telefon: '', email: '', oras: '', tip: 'persoana' });
-      fetchData();
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Eroare la adăugare client');
-    } finally {
-      setLoading(false);
-    }
-  };
+const handleAddClient = async () => {
+  if (!clientForm.nume || !clientForm.telefon) {
+    alert('Nume și Telefon sunt obligatorii!');
+    return;
+  }
+  setLoading(true);
+  try {
+    await axios.post(`${API_URL}/clients/`, {
+      name: clientForm.nume,
+      telefon: clientForm.telefon,
+      email: clientForm.email,
+      oras: clientForm.oras,
+      tip: clientForm.tip
+    });
+    alert('Client adăugat cu succes!');
+    setShowClientForm(false);
+    setClientForm({ nume: '', telefon: '', email: '', oras: '', tip: 'persoana' });
+    fetchData();
+  } catch (err) {
+    console.error(err);
+    alert(JSON.stringify(err.response?.data || err.message));
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ==================== ADAUGĂ COMANDĂ ====================
   const handleAddComanda = async () => {
