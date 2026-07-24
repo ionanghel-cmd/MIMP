@@ -28,8 +28,9 @@ class Client(Base):
     tip = Column(String, default="persoana")
 
 class Comanda(Base):
-    __tablename__ = "erp_comenzi"          # nume nou
+    __tablename__ = "erp_comenzi"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    numar = Column(Integer, unique=True)          # ← adăugat
     data = Column(Date, default=date.today)
     client_id = Column(UUID(as_uuid=True), ForeignKey("erp_clients.id"))
     status = Column(SQLEnum(OrderStatus), default=OrderStatus.CERERE)
