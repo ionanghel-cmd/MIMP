@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Package, Plus, X } from 'lucide-react';
+import { Package, Plus, X, Search, Trash2 } from 'lucide-react';
 
 const API_URL = 'https://good-ange-vdm-da4c7af1.koyeb.app/api';
 
@@ -10,6 +10,10 @@ function App() {
   const [comenzi, setComenzi] = useState([]);
   const [dashboard, setDashboard] = useState({});
   const [loading, setLoading] = useState(false);
+
+  // Căutare
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   // Formulare
   const [showClientForm, setShowClientForm] = useState(false);
@@ -53,6 +57,19 @@ function App() {
     }
   };
 
+  // Filtrare comenzi
+  const filteredComenzi = comenzi.filter(c => {
+    const matchSearch =
+      !search ||
+      (c.client_nume || '').toLowerCase().includes(search.toLowerCase()) ||
+      String(c.numar || '').includes(search) ||
+      (c.id || '').toLowerCase().includes(search.toLowerCase());
+
+    const matchStatus = !filterStatus || c.status === filterStatus;
+
+    return matchSearch && matchStatus;
+  });
+
   // ==================== ADAUGĂ CLIENT ====================
   const handleAddClient = async () => {
     if (!clientForm.nume || !clientForm.telefon) {
@@ -76,6 +93,18 @@ function App() {
       alert(JSON.stringify(err.response?.data || err.message));
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ==================== ȘTERGE CLIENT ====================
+  const handleDeleteClient = async (id, nume) => {
+    if (!confirm(`Ești sigur că vrei să ștergi clientul "${nume}"?`)) return;
+    try {
+      await axios.delete(`${API_URL}/clients/${id}`);
+      alert('Client șters!');
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Eroare la ștergere');
     }
   };
 
@@ -129,6 +158,19 @@ function App() {
       alert(err.response?.data?.detail || 'Eroare la actualizare');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ==================== ȘTERGE COMANDĂ ====================
+  const handleDeleteComanda = async (id, numar) => {
+    if (!confirm(`Ești sigur că vrei să ștergi comanda #${numar}?`)) return;
+    try {
+      await axios.delete(`${API_URL}/comenzi/${id}`);
+      alert('Comandă ștearsă!');
+      setSelectedComanda(null);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Eroare la ștergere');
     }
   };
 
@@ -203,7 +245,7 @@ function App() {
         {/* COMENZI */}
         {page === 'comenzi' && (
           <div className="p-8">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex justify-between items-center mb-6">
               <h1 className="text-3xl font-bold">Comenzi</h1>
               <button
                 onClick={() => setShowComandaForm(true)}
@@ -213,13 +255,43 @@ function App() {
               </button>
             </div>
 
+            {/* Căutare + Filtru */}
+            <div className="flex gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Caută după client sau număr comandă..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-3"
+                />
+              </div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="bg-gray-900 border border-gray-700 rounded-xl px-4 py-3"
+              >
+                <option value="">Toate statusurile</option>
+                <option value="Cerere">Cerere</option>
+                <option value="Oferta trimisa">Ofertă trimisă</option>
+                <option value="Confirmata">Confirmată</option>
+                <option value="Comandata la furnizor">Comandată la furnizor</option>
+                <option value="In transport">În transport</option>
+                <option value="Ajunsa">Ajunsă</option>
+                <option value="Livrata">Livrată</option>
+                <option value="Finalizata">Finalizată</option>
+                <option value="Anulata">Anulată</option>
+              </select>
+            </div>
+
             <div className="space-y-4">
-              {comenzi.length === 0 ? (
+              {filteredComenzi.length === 0 ? (
                 <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
-                  Nu există comenzi. Adaugă prima comandă!
+                  Nu există comenzi.
                 </div>
               ) : (
-                comenzi.map((c) => (
+                filteredComenzi.map((c) => (
                   <div
                     key={c.id}
                     className="bg-gray-900 border border-gray-800 rounded-2xl p-6 cursor-pointer hover:border-emerald-600 transition"
@@ -234,19 +306,30 @@ function App() {
                           <p className="text-sm text-gray-500 mt-1">📝 {c.observatii}</p>
                         )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end gap-2">
                         <p className="text-emerald-500 font-bold text-lg">{c.profit} € profit</p>
                         <p className="text-sm text-gray-400">Total: {c.total_vanzare} €</p>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingComanda(c);
-                            setEditForm({ status: c.status || 'Cerere', observatii: c.observatii || '' });
-                          }}
-                          className="text-sm bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg mt-2"
-                        >
-                          Editează
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingComanda(c);
+                              setEditForm({ status: c.status || 'Cerere', observatii: c.observatii || '' });
+                            }}
+                            className="text-sm bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg"
+                          >
+                            Editează
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteComanda(c.id, c.numar);
+                            }}
+                            className="text-sm bg-red-600/20 text-red-400 hover:bg-red-600/40 px-3 py-2 rounded-lg"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -271,7 +354,7 @@ function App() {
 
             <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
               {clients.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">Nu există clienți. Adaugă primul client!</div>
+                <div className="p-8 text-center text-gray-400">Nu există clienți.</div>
               ) : (
                 <table className="w-full">
                   <thead>
@@ -280,6 +363,7 @@ function App() {
                       <th className="p-4">Telefon</th>
                       <th className="p-4">Oraș</th>
                       <th className="p-4">Tip</th>
+                      <th className="p-4">Acțiuni</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -290,6 +374,14 @@ function App() {
                         <td className="p-4">{c.oras || '-'}</td>
                         <td className="p-4">
                           <span className="bg-gray-800 px-3 py-1 rounded-full text-xs">{c.tip}</span>
+                        </td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => handleDeleteClient(c.id, c.nume || c.name)}
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -309,55 +401,23 @@ function App() {
               <h2 className="text-2xl font-bold">Client Nou</h2>
               <button onClick={() => setShowClientForm(false)}><X size={24} /></button>
             </div>
-
             <div className="space-y-4">
-              <input
-                placeholder="Nume complet *"
-                value={clientForm.nume}
-                onChange={(e) => setClientForm({ ...clientForm, nume: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"
-              />
-              <input
-                placeholder="Telefon *"
-                value={clientForm.telefon}
-                onChange={(e) => setClientForm({ ...clientForm, telefon: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"
-              />
-              <input
-                placeholder="Email"
-                value={clientForm.email}
-                onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"
-              />
-              <input
-                placeholder="Oraș"
-                value={clientForm.oras}
-                onChange={(e) => setClientForm({ ...clientForm, oras: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"
-              />
-              <select
-                value={clientForm.tip}
-                onChange={(e) => setClientForm({ ...clientForm, tip: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"
-              >
+              <input placeholder="Nume complet *" value={clientForm.nume} onChange={(e) => setClientForm({ ...clientForm, nume: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3" />
+              <input placeholder="Telefon *" value={clientForm.telefon} onChange={(e) => setClientForm({ ...clientForm, telefon: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3" />
+              <input placeholder="Email" value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3" />
+              <input placeholder="Oraș" value={clientForm.oras} onChange={(e) => setClientForm({ ...clientForm, oras: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3" />
+              <select value={clientForm.tip} onChange={(e) => setClientForm({ ...clientForm, tip: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
                 <option value="persoana">Persoană fizică</option>
                 <option value="service">Service</option>
                 <option value="magazin">Magazin</option>
                 <option value="dealer">Dealer</option>
               </select>
             </div>
-
             <div className="flex gap-4 mt-8">
-              <button
-                onClick={handleAddClient}
-                disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl font-medium flex-1 disabled:opacity-50"
-              >
+              <button onClick={handleAddClient} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl font-medium flex-1 disabled:opacity-50">
                 {loading ? 'Se salvează...' : 'Salvează Client'}
               </button>
-              <button onClick={() => setShowClientForm(false)} className="bg-gray-700 px-6 py-3 rounded-xl">
-                Anulează
-              </button>
+              <button onClick={() => setShowClientForm(false)} className="bg-gray-700 px-6 py-3 rounded-xl">Anulează</button>
             </div>
           </div>
         </div>
@@ -371,108 +431,37 @@ function App() {
               <h2 className="text-2xl font-bold">Comandă Nouă</h2>
               <button onClick={() => setShowComandaForm(false)}><X size={24} /></button>
             </div>
-
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Client *</label>
-                <select
-                  value={comandaForm.client_id}
-                  onChange={(e) => setComandaForm({ ...comandaForm, client_id: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"
-                >
+                <select value={comandaForm.client_id} onChange={(e) => setComandaForm({ ...comandaForm, client_id: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
                   <option value="">Selectează client</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>{c.nume || c.name} — {c.telefon}</option>
                   ))}
                 </select>
               </div>
-
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Cost Transport Total (€) *</label>
-                <input
-                  type="number"
-                  value={comandaForm.cost_transport_total}
-                  onChange={(e) => setComandaForm({ ...comandaForm, cost_transport_total: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"
-                  placeholder="Ex: 80"
-                />
+                <input type="number" value={comandaForm.cost_transport_total} onChange={(e) => setComandaForm({ ...comandaForm, cost_transport_total: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3" placeholder="Ex: 80" />
               </div>
             </div>
-
             <h3 className="font-semibold mb-3">Piese</h3>
             {comandaForm.piese.map((p, index) => (
               <div key={index} className="grid grid-cols-5 gap-3 mb-3">
-                <input
-                  placeholder="Cod OEM"
-                  value={p.cod_oem}
-                  onChange={(e) => {
-                    const newPiese = [...comandaForm.piese];
-                    newPiese[index].cod_oem = e.target.value;
-                    setComandaForm({ ...comandaForm, piese: newPiese });
-                  }}
-                  className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm"
-                />
-                <input
-                  placeholder="Denumire"
-                  value={p.denumire}
-                  onChange={(e) => {
-                    const newPiese = [...comandaForm.piese];
-                    newPiese[index].denumire = e.target.value;
-                    setComandaForm({ ...comandaForm, piese: newPiese });
-                  }}
-                  className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm"
-                />
-                <input
-                  type="number"
-                  placeholder="Cant"
-                  value={p.cantitate}
-                  onChange={(e) => {
-                    const newPiese = [...comandaForm.piese];
-                    newPiese[index].cantitate = e.target.value;
-                    setComandaForm({ ...comandaForm, piese: newPiese });
-                  }}
-                  className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm"
-                />
-                <input
-                  type="number"
-                  placeholder="Preț cumpărare"
-                  value={p.pret_cumparare}
-                  onChange={(e) => {
-                    const newPiese = [...comandaForm.piese];
-                    newPiese[index].pret_cumparare = e.target.value;
-                    setComandaForm({ ...comandaForm, piese: newPiese });
-                  }}
-                  className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm"
-                />
-                <input
-                  type="number"
-                  placeholder="Preț vânzare"
-                  value={p.pret_vanzare}
-                  onChange={(e) => {
-                    const newPiese = [...comandaForm.piese];
-                    newPiese[index].pret_vanzare = e.target.value;
-                    setComandaForm({ ...comandaForm, piese: newPiese });
-                  }}
-                  className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm"
-                />
+                <input placeholder="Cod OEM" value={p.cod_oem} onChange={(e) => { const n = [...comandaForm.piese]; n[index].cod_oem = e.target.value; setComandaForm({ ...comandaForm, piese: n }); }} className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm" />
+                <input placeholder="Denumire" value={p.denumire} onChange={(e) => { const n = [...comandaForm.piese]; n[index].denumire = e.target.value; setComandaForm({ ...comandaForm, piese: n }); }} className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm" />
+                <input type="number" placeholder="Cant" value={p.cantitate} onChange={(e) => { const n = [...comandaForm.piese]; n[index].cantitate = e.target.value; setComandaForm({ ...comandaForm, piese: n }); }} className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm" />
+                <input type="number" placeholder="Preț cumpărare" value={p.pret_cumparare} onChange={(e) => { const n = [...comandaForm.piese]; n[index].pret_cumparare = e.target.value; setComandaForm({ ...comandaForm, piese: n }); }} className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm" />
+                <input type="number" placeholder="Preț vânzare" value={p.pret_vanzare} onChange={(e) => { const n = [...comandaForm.piese]; n[index].pret_vanzare = e.target.value; setComandaForm({ ...comandaForm, piese: n }); }} className="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm" />
               </div>
             ))}
-
-            <button onClick={adaugaPiesa} className="text-emerald-500 text-sm mb-6 hover:underline">
-              + Adaugă altă piesă
-            </button>
-
+            <button onClick={adaugaPiesa} className="text-emerald-500 text-sm mb-6 hover:underline">+ Adaugă altă piesă</button>
             <div className="flex gap-4">
-              <button
-                onClick={handleAddComanda}
-                disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 px-8 py-3 rounded-xl font-medium disabled:opacity-50"
-              >
+              <button onClick={handleAddComanda} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 px-8 py-3 rounded-xl font-medium disabled:opacity-50">
                 {loading ? 'Se salvează...' : 'Salvează Comanda'}
               </button>
-              <button onClick={() => setShowComandaForm(false)} className="bg-gray-700 px-8 py-3 rounded-xl">
-                Anulează
-              </button>
+              <button onClick={() => setShowComandaForm(false)} className="bg-gray-700 px-8 py-3 rounded-xl">Anulează</button>
             </div>
           </div>
         </div>
@@ -483,20 +472,13 @@ function App() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Editează Comanda</h2>
-              <button onClick={() => setEditingComanda(null)}>
-                <X size={24} />
-              </button>
+              <h2 className="text-2xl font-bold">Editează Comanda #{editingComanda.numar}</h2>
+              <button onClick={() => setEditingComanda(null)}><X size={24} /></button>
             </div>
-
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Status</label>
-                <select
-                  value={editForm.status}
-                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"
-                >
+                <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
                   <option value="Cerere">Cerere</option>
                   <option value="Oferta trimisa">Ofertă trimisă</option>
                   <option value="Confirmata">Confirmată</option>
@@ -508,29 +490,16 @@ function App() {
                   <option value="Anulata">Anulată</option>
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Observații / Comentarii</label>
-                <textarea
-                  value={editForm.observatii}
-                  onChange={(e) => setEditForm({ ...editForm, observatii: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 h-28"
-                  placeholder="Adaugă comentarii..."
-                />
+                <label className="block text-sm text-gray-400 mb-1">Observații</label>
+                <textarea value={editForm.observatii} onChange={(e) => setEditForm({ ...editForm, observatii: e.target.value })} className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 h-28" />
               </div>
             </div>
-
             <div className="flex gap-4 mt-8">
-              <button
-                onClick={handleUpdateComanda}
-                disabled={loading}
-                className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl font-medium flex-1 disabled:opacity-50"
-              >
+              <button onClick={handleUpdateComanda} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl font-medium flex-1 disabled:opacity-50">
                 {loading ? 'Se salvează...' : 'Salvează'}
               </button>
-              <button onClick={() => setEditingComanda(null)} className="bg-gray-700 px-6 py-3 rounded-xl">
-                Anulează
-              </button>
+              <button onClick={() => setEditingComanda(null)} className="bg-gray-700 px-6 py-3 rounded-xl">Anulează</button>
             </div>
           </div>
         </div>
@@ -546,9 +515,7 @@ function App() {
                 <p className="text-emerald-400 mt-1">{selectedComanda.client_nume} • {selectedComanda.client_telefon}</p>
                 <p className="text-gray-400 text-sm">{selectedComanda.data} • {selectedComanda.status}</p>
               </div>
-              <button onClick={() => setSelectedComanda(null)}>
-                <X size={24} />
-              </button>
+              <button onClick={() => setSelectedComanda(null)}><X size={24} /></button>
             </div>
 
             {selectedComanda.observatii && (
@@ -559,7 +526,6 @@ function App() {
             )}
 
             <h3 className="font-semibold mb-4">Piese comandate</h3>
-
             {selectedComanda.piese && selectedComanda.piese.length > 0 ? (
               <table className="w-full text-sm">
                 <thead>
@@ -588,7 +554,7 @@ function App() {
                 </tbody>
               </table>
             ) : (
-              <p className="text-gray-400">Nu există piese pe această comandă.</p>
+              <p className="text-gray-400">Nu există piese.</p>
             )}
 
             <div className="mt-8 grid grid-cols-3 gap-4">
