@@ -179,3 +179,29 @@ def get_dashboard(db: Session = Depends(get_db)):
         "in_transport": len([c for c in comenzi if str(c.status) == "In transport"]),
         "clienti": db.query(Client).count()
     }
+@router.delete("/comenzi/{comanda_id}")
+def delete_comanda(comanda_id: str, db: Session = Depends(get_db)):
+    comanda = db.query(Comanda).filter(Comanda.id == comanda_id).first()
+    if not comanda:
+        raise HTTPException(status_code=404, detail="Comanda nu există")
+    
+    # Ștergem și piesele
+    db.query(ComandaPiesa).filter(ComandaPiesa.comanda_id == comanda.id).delete()
+    db.delete(comanda)
+    db.commit()
+    return {"message": "Comandă ștearsă"}
+
+@router.delete("/clients/{client_id}")
+def delete_client(client_id: str, db: Session = Depends(get_db)):
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Clientul nu există")
+    
+    # Verificăm dacă are comenzi
+    comenzi = db.query(Comanda).filter(Comanda.client_id == client.id).count()
+    if comenzi > 0:
+        raise HTTPException(status_code=400, detail="Clientul are comenzi. Nu poate fi șters.")
+    
+    db.delete(client)
+    db.commit()
+    return {"message": "Client șters"}
