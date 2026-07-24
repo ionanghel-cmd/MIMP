@@ -21,7 +21,7 @@ class OrderStatus(str, enum.Enum):
 class Client(Base):
     __tablename__ = "clients"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    nume = Column(String, nullable=False)
+    name = Column(String, nullable=False)        
     telefon = Column(String, unique=True)
     email = Column(String)
     oras = Column(String)
