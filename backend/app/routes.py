@@ -35,7 +35,7 @@ def get_clients(db: Session = Depends(get_db)):
 def create_client(client: ClientCreate, db: Session = Depends(get_db)):
     try:
         db_client = Client(
-            name=client.name,
+            nume=client.name,          # ← mapăm name → nume
             telefon=client.telefon,
             email=client.email,
             oras=client.oras,
