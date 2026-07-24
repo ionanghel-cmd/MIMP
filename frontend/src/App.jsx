@@ -50,11 +50,13 @@ function App() {
   };
 
   // ==================== ADAUGĂ CLIENT ====================
-  const handleAddClient = async () => {
-    if (!clientForm.nume || !clientForm.telefon) {
-      alert('Nume și Telefon sunt obligatorii!');
-      return;
-    }
+await axios.post(`${API_URL}/clients/`, {
+  name: clientForm.nume,
+  telefon: clientForm.telefon,
+  email: clientForm.email,
+  oras: clientForm.oras,
+  tip: clientForm.tip
+});
     setLoading(true);
     try {
       await axios.post(`${API_URL}/clients/`, clientForm);
