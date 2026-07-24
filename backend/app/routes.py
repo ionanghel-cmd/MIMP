@@ -4,12 +4,11 @@ from .database import get_db
 from .models import Client, Comanda, ComandaPiesa, OrderStatus
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date
 import uuid
 
 router = APIRouter()
 
-# ========== SCHEMAS ==========
+# ==================== SCHEMAS ====================
 class ClientCreate(BaseModel):
     nume: str
     telefon: str
@@ -30,9 +29,14 @@ class ComandaCreate(BaseModel):
     observatii: Optional[str] = None
     piese: List[PiesaCreate]
 
-# ========== CLIENTI ==========
+# ==================== CLIENTI ====================
 @router.post("/clients/")
 def create_client(client: ClientCreate, db: Session = Depends(get_db)):
+    # Verifică dacă telefonul există deja
+    existing = db.query(Client).filter(Client.telefon == client.telefon).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Există deja un client cu acest telefon")
+    
     db_client = Client(**client.dict())
     db.add(db_client)
     db.commit()
@@ -41,22 +45,24 @@ def create_client(client: ClientCreate, db: Session = Depends(get_db)):
 
 @router.get("/clients/")
 def get_clients(db: Session = Depends(get_db)):
-    return db.query(Client).all()
+    return db.query(Client).order_by(Client.nume).all()
 
-# ========== COMENZI ==========
+# ==================== COMENZI ====================
 @router.post("/comenzi/")
 def create_comanda(data: ComandaCreate, db: Session = Depends(get_db)):
-    # Verifică client
     client = db.query(Client).filter(Client.id == data.client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Clientul nu există")
 
-    # Alocare automată transport (după cantitate)
+    if not data.piese:
+        raise HTTPException(status_code=400, detail="Trebuie să adaugi cel puțin o piesă")
+
+    # Alocare automată cost transport după cantitate
     total_cantitate = sum(p.cantitate for p in data.piese) or 1
     cost_per_unit = data.cost_transport_total / total_cantitate
 
-    total_vanzare = 0
-    total_cost = 0
+    total_vanzare = 0.0
+    total_cost = 0.0
 
     comanda = Comanda(
         client_id=data.client_id,
@@ -65,11 +71,11 @@ def create_comanda(data: ComandaCreate, db: Session = Depends(get_db)):
         status=OrderStatus.CERERE
     )
     db.add(comanda)
-    db.flush()  # ca să avem ID
+    db.flush()
 
     for p in data.piese:
         cost_livrare = round(cost_per_unit * p.cantitate, 2)
-        profit = round((p.pret_vanzare - p.pret_cumparare - cost_livrare) * p.cantitate, 2)
+        profit_piesa = round((p.pret_vanzare - p.pret_cumparare - cost_livrare) * p.cantitate, 2)
 
         piesa = ComandaPiesa(
             comanda_id=comanda.id,
@@ -79,7 +85,7 @@ def create_comanda(data: ComandaCreate, db: Session = Depends(get_db)):
             pret_cumparare=p.pret_cumparare,
             cost_livrare=cost_livrare,
             pret_vanzare=p.pret_vanzare,
-            profit=profit
+            profit=profit_piesa
         )
         db.add(piesa)
 
@@ -102,8 +108,8 @@ def get_comenzi(db: Session = Depends(get_db)):
 def get_dashboard(db: Session = Depends(get_db)):
     comenzi = db.query(Comanda).all()
     return {
-        "profit_total": sum(c.profit or 0 for c in comenzi),
+        "profit_total": round(sum(c.profit or 0 for c in comenzi), 2),
         "comenzi_totale": len(comenzi),
         "in_transport": len([c for c in comenzi if c.status == OrderStatus.TRANSPORT]),
-        "clienti_noi": db.query(Client).count()
+        "clienti": db.query(Client).count()
     }
