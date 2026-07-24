@@ -51,7 +51,37 @@ def create_client(client: ClientCreate, db: Session = Depends(get_db)):
 
 @router.get("/comenzi/")
 def get_comenzi(db: Session = Depends(get_db)):
-    return db.query(Comanda).all()
+    comenzi = db.query(Comanda).order_by(Comanda.data.desc()).all()
+    
+    result = []
+    for c in comenzi:
+        client = db.query(Client).filter(Client.id == c.client_id).first()
+        piese = db.query(ComandaPiesa).filter(ComandaPiesa.comanda_id == c.id).all()
+        
+        result.append({
+            "id": str(c.id),
+            "data": str(c.data),
+            "status": c.status.value if c.status else "Cerere",
+            "observatii": c.observatii,
+            "cost_transport_total": c.cost_transport_total,
+            "total_vanzare": c.total_vanzare,
+            "total_cost": c.total_cost,
+            "profit": c.profit,
+            "client_nume": client.nume if client else "Necunoscut",
+            "client_telefon": client.telefon if client else "",
+            "piese": [
+                {
+                    "cod_oem": p.cod_oem,
+                    "denumire": p.denumire,
+                    "cantitate": p.cantitate,
+                    "pret_cumparare": p.pret_cumparare,
+                    "cost_livrare": p.cost_livrare,
+                    "pret_vanzare": p.pret_vanzare,
+                    "profit": p.profit
+                } for p in piese
+            ]
+        })
+    return result
 
 @router.post("/comenzi/")
 def create_comanda(data: ComandaCreate, db: Session = Depends(get_db)):
