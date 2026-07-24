@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.database import engine, Base
+import app.models   # ← FOARTE IMPORTANT - încarcă modelele
 from app.routes import router
 import os
 
@@ -15,14 +16,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Forțează crearea tabelelor
 print("Creating tables...")
 Base.metadata.create_all(bind=engine)
-print("Tables created!")
+print("Tables created successfully!")
 
 app.include_router(router, prefix="/api")
 
-# Servește frontend
 if os.path.exists("/app/frontend/dist"):
     app.mount("/", StaticFiles(directory="/app/frontend/dist", html=True), name="static")
 
