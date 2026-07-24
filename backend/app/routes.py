@@ -109,3 +109,38 @@ def get_dashboard(db: Session = Depends(get_db)):
         "in_transport": len([c for c in comenzi if str(c.status) == "In transport"]),
         "clienti": db.query(Client).count()
     }
+class ComandaUpdate(BaseModel):
+    status: Optional[str] = None
+    observatii: Optional[str] = None
+
+@router.put("/comenzi/{comanda_id}")
+def update_comanda(comanda_id: str, data: ComandaUpdate, db: Session = Depends(get_db)):
+    comanda = db.query(Comanda).filter(Comanda.id == comanda_id).first()
+    if not comanda:
+        raise HTTPException(status_code=404, detail="Comanda nu există")
+
+    if data.status:
+        # Convertim string-ul în OrderStatus
+        try:
+            comanda.status = OrderStatus(data.status)
+        except Value:
+            # Dacă nu e exact enum, încercăm să mapăm
+            status_map = {
+                "Cerere": OrderStatus.CERERE,
+                "Oferta trimisa": OrderStatus.OFERTA,
+                "Confirmata": OrderStatus.CONFIRMATA,
+                "Comandata la furnizor": OrderStatus.COMANDATA,
+                "In transport": OrderStatus.TRANSPORT,
+                "Ajunsa": OrderStatus.AJUNSA,
+                "Livrata": OrderStatus.LIVRATA,
+                "Finalizata": OrderStatus.FINALIZATA,
+                "Anulata": OrderStatus.ANULATA,
+            }
+            comanda.status = status_map.get(data.status, OrderStatus.CERERE)
+
+    if data.observatii is not None:
+        comanda.observatii = data.observatii
+
+    db.commit()
+    db.refresh(comanda)
+    return comanda
