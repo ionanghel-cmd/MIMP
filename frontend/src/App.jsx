@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Package, Plus, X, Users, Truck, DollarSign } from 'lucide-react';
+import { Package, Plus, X } from 'lucide-react';
 
 const API_URL = 'https://good-ange-vdm-da4c7af1.koyeb.app/api';
 
@@ -14,6 +14,7 @@ function App() {
   // Formulare
   const [showClientForm, setShowClientForm] = useState(false);
   const [showComandaForm, setShowComandaForm] = useState(false);
+  const [editingComanda, setEditingComanda] = useState(null);
 
   const [clientForm, setClientForm] = useState({
     nume: '',
@@ -29,6 +30,8 @@ function App() {
     observatii: '',
     piese: [{ cod_oem: '', denumire: '', cantitate: 1, pret_cumparare: '', pret_vanzare: '' }]
   });
+
+  const [editForm, setEditForm] = useState({ status: '', observatii: '' });
 
   useEffect(() => {
     fetchData();
@@ -50,31 +53,30 @@ function App() {
   };
 
   // ==================== ADAUGĂ CLIENT ====================
-const handleAddClient = async () => {
-  if (!clientForm.nume || !clientForm.telefon) {
-    alert('Nume și Telefon sunt obligatorii!');
-    return;
-  }
-  setLoading(true);
-  try {
-    await axios.post(`${API_URL}/clients/`, {
-      name: clientForm.nume,
-      telefon: clientForm.telefon,
-      email: clientForm.email,
-      oras: clientForm.oras,
-      tip: clientForm.tip
-    });
-    alert('Client adăugat cu succes!');
-    setShowClientForm(false);
-    setClientForm({ nume: '', telefon: '', email: '', oras: '', tip: 'persoana' });
-    fetchData();
-  } catch (err) {
-    console.error(err);
-    alert(JSON.stringify(err.response?.data || err.message));
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleAddClient = async () => {
+    if (!clientForm.nume || !clientForm.telefon) {
+      alert('Nume și Telefon sunt obligatorii!');
+      return;
+    }
+    setLoading(true);
+    try {
+      await axios.post(`${API_URL}/clients/`, {
+        name: clientForm.nume,
+        telefon: clientForm.telefon,
+        email: clientForm.email,
+        oras: clientForm.oras,
+        tip: clientForm.tip
+      });
+      alert('Client adăugat cu succes!');
+      setShowClientForm(false);
+      setClientForm({ nume: '', telefon: '', email: '', oras: '', tip: 'persoana' });
+      fetchData();
+    } catch (err) {
+      alert(JSON.stringify(err.response?.data || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ==================== ADAUGĂ COMANDĂ ====================
   const handleAddComanda = async () => {
@@ -105,6 +107,25 @@ const handleAddClient = async () => {
       fetchData();
     } catch (err) {
       alert(err.response?.data?.detail || 'Eroare la salvare comandă');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==================== UPDATE COMANDĂ ====================
+  const handleUpdateComanda = async () => {
+    if (!editingComanda) return;
+    setLoading(true);
+    try {
+      await axios.put(`${API_URL}/comenzi/${editingComanda.id}`, {
+        status: editForm.status,
+        observatii: editForm.observatii
+      });
+      alert('Comandă actualizată!');
+      setEditingComanda(null);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Eroare la actualizare');
     } finally {
       setLoading(false);
     }
@@ -199,14 +220,26 @@ const handleAddClient = async () => {
               ) : (
                 comenzi.map((c) => (
                   <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="text-xl font-semibold">#{c.numar || c.id?.slice(0, 8)}</h3>
+                        <h3 className="text-xl font-semibold">#{c.id?.slice(0, 8)}</h3>
                         <p className="text-gray-400 text-sm">{c.data} • {c.status}</p>
+                        {c.observatii && (
+                          <p className="text-sm text-gray-500 mt-1">📝 {c.observatii}</p>
+                        )}
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end gap-2">
                         <p className="text-emerald-500 font-bold text-lg">{c.profit} € profit</p>
                         <p className="text-sm text-gray-400">Total: {c.total_vanzare} €</p>
+                        <button
+                          onClick={() => {
+                            setEditingComanda(c);
+                            setEditForm({ status: c.status || 'Cerere', observatii: c.observatii || '' });
+                          }}
+                          className="text-sm bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg"
+                        >
+                          Editează
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -245,7 +278,7 @@ const handleAddClient = async () => {
                   <tbody>
                     {clients.map((c) => (
                       <tr key={c.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                        <td className="p-4 font-medium">{c.nume}</td>
+                        <td className="p-4 font-medium">{c.nume || c.name}</td>
                         <td className="p-4">{c.telefon}</td>
                         <td className="p-4">{c.oras || '-'}</td>
                         <td className="p-4">
@@ -342,7 +375,7 @@ const handleAddClient = async () => {
                 >
                   <option value="">Selectează client</option>
                   {clients.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nume} — {c.telefon}</option>
+                    <option key={c.id} value={c.id}>{c.nume || c.name} — {c.telefon}</option>
                   ))}
                 </select>
               </div>
@@ -431,6 +464,64 @@ const handleAddClient = async () => {
                 {loading ? 'Se salvează...' : 'Salvează Comanda'}
               </button>
               <button onClick={() => setShowComandaForm(false)} className="bg-gray-700 px-8 py-3 rounded-xl">
+                Anulează
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== FORMULAR EDITARE COMANDĂ ========== */}
+      {editingComanda && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-md">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Editează Comanda</h2>
+              <button onClick={() => setEditingComanda(null)}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3"
+                >
+                  <option value="Cerere">Cerere</option>
+                  <option value="Oferta trimisa">Ofertă trimisă</option>
+                  <option value="Confirmata">Confirmată</option>
+                  <option value="Comandata la furnizor">Comandată la furnizor</option>
+                  <option value="In transport">În transport</option>
+                  <option value="Ajunsa">Ajunsă</option>
+                  <option value="Livrata">Livrată</option>
+                  <option value="Finalizata">Finalizată</option>
+                  <option value="Anulata">Anulată</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Observații / Comentarii</label>
+                <textarea
+                  value={editForm.observatii}
+                  onChange={(e) => setEditForm({ ...editForm, observatii: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 h-28"
+                  placeholder="Adaugă comentarii..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-8">
+              <button
+                onClick={handleUpdateComanda}
+                disabled={loading}
+                className="bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl font-medium flex-1 disabled:opacity-50"
+              >
+                {loading ? 'Se salvează...' : 'Salvează'}
+              </button>
+              <button onClick={() => setEditingComanda(null)} className="bg-gray-700 px-6 py-3 rounded-xl">
                 Anulează
               </button>
             </div>
