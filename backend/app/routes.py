@@ -8,7 +8,7 @@ from typing import List, Optional
 router = APIRouter()
 
 class ClientCreate(BaseModel):
-    nume: str
+    name: str
     telefon: str
     email: Optional[str] = None
     oras: Optional[str] = None
@@ -35,7 +35,7 @@ def get_clients(db: Session = Depends(get_db)):
 def create_client(client: ClientCreate, db: Session = Depends(get_db)):
     try:
         db_client = Client(
-            nume=client.nume,
+            name=client.name,
             telefon=client.telefon,
             email=client.email,
             oras=client.oras,
