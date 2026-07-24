@@ -227,7 +227,7 @@ function App() {
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="text-xl font-semibold">#{c.id?.slice(0, 8)}</h3>
+                        <h3 className="text-xl font-semibold">#{c.numar || c.id?.slice(0, 8)}</h3>
                         <p className="text-emerald-400 font-medium mt-1">{c.client_nume || 'Client necunoscut'}</p>
                         <p className="text-gray-400 text-sm">{c.data} • {c.status}</p>
                         {c.observatii && (
@@ -542,7 +542,7 @@ function App() {
           <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-2xl font-bold">Comandă #{selectedComanda.id?.slice(0, 8)}</h2>
+                <h2 className="text-2xl font-bold">Comandă #{selectedComanda.numar || selectedComanda.id?.slice(0, 8)}</h2>
                 <p className="text-emerald-400 mt-1">{selectedComanda.client_nume} • {selectedComanda.client_telefon}</p>
                 <p className="text-gray-400 text-sm">{selectedComanda.data} • {selectedComanda.status}</p>
               </div>
