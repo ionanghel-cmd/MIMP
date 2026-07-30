@@ -105,3 +105,41 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
     return {"message": "Cont creat. Așteaptă aprobarea administratorului."}
+
+@router.get("/users")
+def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Doar adminul poate vedea utilizatorii")
+    users = db.query(User).all()
+    return [
+        {
+            "id": str(u.id),
+            "username": u.username,
+            "role": u.role,
+            "approved": u.approved
+        } for u in users
+    ]
+
+@router.put("/users/{user_id}/approve")
+def approve_user(user_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Doar adminul poate aproba")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizatorul nu există")
+    user.approved = True
+    db.commit()
+    return {"message": f"Utilizatorul {user.username} a fost aprobat"}
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Doar adminul poate șterge")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizatorul nu există")
+    if user.username == current_user.username:
+        raise HTTPException(status_code=400, detail="Nu te poți șterge pe tine însuți")
+    db.delete(user)
+    db.commit()
+    return {"message": "Utilizator șters"}
