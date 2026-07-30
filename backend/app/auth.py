@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -19,6 +20,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# ==================== SCHEMAS ====================
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -30,10 +32,10 @@ class UserCreate(BaseModel):
     password: str
     role: str = "operator"
 
-class UserOut(BaseModel):
-    username: str
+class UserRoleUpdate(BaseModel):
     role: str
 
+# ==================== HELPERS ====================
 def verify_password(plain, hashed):
     return pwd_context.verify(plain, hashed)
 
@@ -67,16 +69,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception
     return user
 
+# ==================== LOGIN ====================
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = get_user(db, form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Utilizator sau parolă greșită")
 
-    # ACEASTĂ VERIFICARE ESTE OBLIGATORIE
     if not user.approved and user.role != "admin":
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Contul tău nu a fost încă aprobat de administrator"
         )
 
@@ -88,32 +90,35 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         "username": user.username
     }
 
+# ==================== REGISTER ====================
 @router.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
     if len(user.username) < 3:
         raise HTTPException(status_code=400, detail="Username prea scurt (minim 3 caractere)")
     if len(user.password) < 4:
         raise HTTPException(status_code=400, detail="Parola prea scurtă (minim 4 caractere)")
-    
+
     existing = get_user(db, user.username)
     if existing:
         raise HTTPException(status_code=400, detail="Utilizatorul există deja")
-    
+
     db_user = User(
         username=user.username,
         hashed_password=get_password_hash(user.password),
         role="operator",
-        approved=False          # ← așteaptă aprobare
+        approved=False
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return {"message": "Cont creat. Așteaptă aprobarea administratorului."}
 
+# ==================== USERS (ADMIN) ====================
 @router.get("/users")
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Doar adminul poate vedea utilizatorii")
+    
     users = db.query(User).all()
     return [
         {
@@ -128,35 +133,36 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_cu
 def approve_user(user_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Doar adminul poate aproba")
-    user = db.query(User).filter(User.id == user_id).first()
+    
+    try:
+        uid = UUID(user_id)
+    except:
+        raise HTTPException(status_code=400, detail="ID invalid")
+    
+    user = db.query(User).filter(User.id == uid).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilizatorul nu există")
+    
     user.approved = True
     db.commit()
     return {"message": f"Utilizatorul {user.username} a fost aprobat"}
 
-@router.delete("/users/{user_id}")
-def delete_user(user_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Doar adminul poate șterge")
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilizatorul nu există")
-    if user.username == current_user.username:
-        raise HTTPException(status_code=400, detail="Nu te poți șterge pe tine însuți")
-    db.delete(user)
-    db.commit()
-    return {"message": "Utilizator șters"}
-
-class UserRoleUpdate(BaseModel):
-    role: str  # admin / operator
-
 @router.put("/users/{user_id}/role")
-def update_user_role(user_id: str, data: UserRoleUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_user_role(
+    user_id: str,
+    data: UserRoleUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Doar adminul poate schimba roluri")
     
-    user = db.query(User).filter(User.id == user_id).first()
+    try:
+        uid = UUID(user_id)
+    except:
+        raise HTTPException(status_code=400, detail="ID invalid")
+    
+    user = db.query(User).filter(User.id == uid).first()
     if not user:
         raise HTTPException(status_code=404, detail="Utilizatorul nu există")
     
@@ -165,5 +171,25 @@ def update_user_role(user_id: str, data: UserRoleUpdate, db: Session = Depends(g
     
     user.role = data.role
     db.commit()
-    db.refresh(user)
     return {"message": f"Rolul lui {user.username} a fost schimbat în {data.role}"}
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Doar adminul poate șterge")
+    
+    try:
+        uid = UUID(user_id)
+    except:
+        raise HTTPException(status_code=400, detail="ID invalid")
+    
+    user = db.query(User).filter(User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizatorul nu există")
+    
+    if user.username == current_user.username:
+        raise HTTPException(status_code=400, detail="Nu te poți șterge pe tine însuți")
+    
+    db.delete(user)
+    db.commit()
+    return {"message": "Utilizator șters"}
