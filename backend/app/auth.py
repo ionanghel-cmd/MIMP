@@ -10,9 +10,9 @@ from .database import get_db
 from .models import User
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "schimba_aceasta_cu_o_cheie_foarte_lunga_si_secreta_2026_motoparts")
+SECRET_KEY = os.getenv("SECRET_KEY", "motoparts_secret_key_foarte_lunga_si_sigura_2026")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 ore
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 zile
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -29,6 +29,10 @@ class UserCreate(BaseModel):
     username: str
     password: str
     role: str = "operator"
+
+class UserOut(BaseModel):
+    username: str
+    role: str
 
 def verify_password(plain, hashed):
     return pwd_context.verify(plain, hashed)
@@ -68,6 +72,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user = get_user(db, form_data.username)
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Utilizator sau parolă greșită")
+    
     access_token = create_access_token(data={"sub": user.username, "role": user.role})
     return {
         "access_token": access_token,
@@ -78,13 +83,19 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 @router.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
+    if len(user.username) < 3:
+        raise HTTPException(status_code=400, detail="Username prea scurt (minim 3 caractere)")
+    if len(user.password) < 4:
+        raise HTTPException(status_code=400, detail="Parola prea scurtă (minim 4 caractere)")
+    
     existing = get_user(db, user.username)
     if existing:
         raise HTTPException(status_code=400, detail="Utilizatorul există deja")
+    
     db_user = User(
         username=user.username,
         hashed_password=get_password_hash(user.password),
-        role=user.role
+        role=user.role if user.role in ["admin", "operator"] else "operator"
     )
     db.add(db_user)
     db.commit()
