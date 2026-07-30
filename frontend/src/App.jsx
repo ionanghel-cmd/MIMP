@@ -14,9 +14,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Login form
+  // Login / Register
+  const [isRegister, setIsRegister] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ username: '', password: '', confirm: '' });
   const [loginError, setLoginError] = useState('');
+  const [registerError, setRegisterError] = useState('');
+  const [registerSuccess, setRegisterSuccess] = useState('');
 
   // Căutare
   const [search, setSearch] = useState('');
@@ -41,16 +45,13 @@ function App() {
 
   const [editForm, setEditForm] = useState({ status: '', observatii: '' });
 
-  // Axios cu token
   const api = axios.create({
     baseURL: API_URL,
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
 
   useEffect(() => {
-    if (token) {
-      fetchData();
-    }
+    if (token) fetchData();
   }, [token]);
 
   const fetchData = async () => {
@@ -65,9 +66,7 @@ function App() {
       setDashboard(dashRes.data || {});
     } catch (err) {
       console.error(err);
-      if (err.response?.status === 401) {
-        handleLogout();
-      }
+      if (err.response?.status === 401) handleLogout();
     }
   };
 
@@ -90,6 +89,39 @@ function App() {
       setUser({ username, role });
     } catch (err) {
       setLoginError(err.response?.data?.detail || 'Utilizator sau parolă greșită');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==================== REGISTER ====================
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setRegisterError('');
+    setRegisterSuccess('');
+
+    if (registerForm.password !== registerForm.confirm) {
+      setRegisterError('Parolele nu coincid');
+      return;
+    }
+    if (registerForm.password.length < 4) {
+      setRegisterError('Parola trebuie să aibă minim 4 caractere');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post(`${API_URL}/auth/register`, {
+        username: registerForm.username,
+        password: registerForm.password,
+        role: 'operator'
+      });
+      setRegisterSuccess('Cont creat cu succes! Acum te poți autentifica.');
+      setIsRegister(false);
+      setLoginForm({ username: registerForm.username, password: '' });
+      setRegisterForm({ username: '', password: '', confirm: '' });
+    } catch (err) {
+      setRegisterError(err.response?.data?.detail || 'Eroare la crearea contului');
     } finally {
       setLoading(false);
     }
@@ -223,7 +255,7 @@ function App() {
     setSidebarOpen(false);
   };
 
-  // ==================== LOGIN PAGE ====================
+  // ==================== LOGIN / REGISTER PAGE ====================
   if (!token) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
@@ -235,42 +267,105 @@ function App() {
             <h1 className="text-2xl font-bold text-white">MotoParts Manager</h1>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Utilizator</label>
-              <input
-                type="text"
-                value={loginForm.username}
-                onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white"
-                placeholder="admin"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Parolă</label>
-              <input
-                type="password"
-                value={loginForm.password}
-                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-
-            {loginError && (
-              <p className="text-red-400 text-sm text-center">{loginError}</p>
-            )}
-
+          {/* Tabs */}
+          <div className="flex mb-6 bg-gray-800 rounded-xl p-1">
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-medium text-white disabled:opacity-50"
+              onClick={() => { setIsRegister(false); setLoginError(''); setRegisterError(''); setRegisterSuccess(''); }}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${!isRegister ? 'bg-emerald-600 text-white' : 'text-gray-400'}`}
             >
-              {loading ? 'Se autentifică...' : 'Autentificare'}
+              Autentificare
             </button>
-          </form>
+            <button
+              onClick={() => { setIsRegister(true); setLoginError(''); setRegisterError(''); setRegisterSuccess(''); }}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${isRegister ? 'bg-emerald-600 text-white' : 'text-gray-400'}`}
+            >
+              Creează cont
+            </button>
+          </div>
+
+          {!isRegister ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Utilizator</label>
+                <input
+                  type="text"
+                  value={loginForm.username}
+                  onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white"
+                  placeholder="admin"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Parolă</label>
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+
+              {loginError && <p className="text-red-400 text-sm text-center">{loginError}</p>}
+              {registerSuccess && <p className="text-emerald-400 text-sm text-center">{registerSuccess}</p>}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-medium text-white disabled:opacity-50"
+              >
+                {loading ? 'Se autentifică...' : 'Autentificare'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Utilizator</label>
+                <input
+                  type="text"
+                  value={registerForm.username}
+                  onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white"
+                  placeholder="Alege un username"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Parolă</label>
+                <input
+                  type="password"
+                  value={registerForm.password}
+                  onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white"
+                  placeholder="Minim 4 caractere"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Confirmă parola</label>
+                <input
+                  type="password"
+                  value={registerForm.confirm}
+                  onChange={(e) => setRegisterForm({ ...registerForm, confirm: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white"
+                  placeholder="Repetă parola"
+                  required
+                />
+              </div>
+
+              {registerError && <p className="text-red-400 text-sm text-center">{registerError}</p>}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl font-medium text-white disabled:opacity-50"
+              >
+                {loading ? 'Se creează...' : 'Creează cont'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     );
@@ -279,7 +374,6 @@ function App() {
   // ==================== APP PRINCIPAL ====================
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
-      {/* OVERLAY mobil */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
@@ -343,7 +437,6 @@ function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* DASHBOARD */}
           {page === 'dashboard' && (
             <div className="p-4 md:p-8">
               <h1 className="text-2xl md:text-3xl font-bold mb-6">Dashboard</h1>
@@ -368,7 +461,6 @@ function App() {
             </div>
           )}
 
-          {/* COMENZI */}
           {page === 'comenzi' && (
             <div className="p-4 md:p-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -428,7 +520,6 @@ function App() {
             </div>
           )}
 
-          {/* CLIENTI */}
           {page === 'clienti' && (
             <div className="p-4 md:p-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -462,7 +553,7 @@ function App() {
         </div>
       </div>
 
-      {/* ========== MODALS ========== */}
+      {/* MODALS */}
       {showClientForm && (
         <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
           <div className="bg-gray-900 border border-gray-700 rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
