@@ -2,8 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.database import engine, Base
-import app.models   # ← FOARTE IMPORTANT - încarcă modelele
+import app.models
 from app.routes import router
+from app.auth import router as auth_router
 import os
 
 app = FastAPI(title="OEM Parts ERP")
@@ -20,6 +21,7 @@ print("Creating tables...")
 Base.metadata.create_all(bind=engine)
 print("Tables created successfully!")
 
+app.include_router(auth_router, prefix="/api")
 app.include_router(router, prefix="/api")
 
 if os.path.exists("/app/frontend/dist"):
