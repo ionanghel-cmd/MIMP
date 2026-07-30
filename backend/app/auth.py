@@ -73,6 +73,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Utilizator sau parolă greșită")
     
+    if not user.approved and user.role != "admin":
+        raise HTTPException(status_code=403, detail="Contul tău nu a fost încă aprobat de administrator")
+    
     access_token = create_access_token(data={"sub": user.username, "role": user.role})
     return {
         "access_token": access_token,
@@ -95,9 +98,10 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     db_user = User(
         username=user.username,
         hashed_password=get_password_hash(user.password),
-        role=user.role if user.role in ["admin", "operator"] else "operator"
+        role="operator",
+        approved=False          # ← așteaptă aprobare
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return {"message": "Utilizator creat cu succes", "username": db_user.username}
+    return {"message": "Cont creat. Așteaptă aprobarea administratorului."}
