@@ -15,7 +15,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Login / Register
   const [isRegister, setIsRegister] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ username: '', password: '', confirm: '' });
@@ -23,11 +22,9 @@ function App() {
   const [registerError, setRegisterError] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState('');
 
-  // Căutare
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  // Formulare
   const [showClientForm, setShowClientForm] = useState(false);
   const [showComandaForm, setShowComandaForm] = useState(false);
   const [editingComanda, setEditingComanda] = useState(null);
@@ -85,7 +82,6 @@ function App() {
     }
   };
 
-  // ==================== LOGIN ====================
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
@@ -94,10 +90,8 @@ function App() {
       const formData = new FormData();
       formData.append('username', loginForm.username);
       formData.append('password', loginForm.password);
-
       const res = await axios.post(`${API_URL}/auth/login`, formData);
       const { access_token, username, role } = res.data;
-
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify({ username, role }));
       setToken(access_token);
@@ -109,12 +103,10 @@ function App() {
     }
   };
 
-  // ==================== REGISTER ====================
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegisterError('');
     setRegisterSuccess('');
-
     if (registerForm.password !== registerForm.confirm) {
       setRegisterError('Parolele nu coincid');
       return;
@@ -123,7 +115,6 @@ function App() {
       setRegisterError('Parola trebuie să aibă minim 4 caractere');
       return;
     }
-
     setLoading(true);
     try {
       await axios.post(`${API_URL}/auth/register`, {
@@ -149,7 +140,6 @@ function App() {
     setUser(null);
   };
 
-  // ==================== USERS (ADMIN) ====================
   const handleApproveUser = async (id, username) => {
     try {
       await api.put(`/auth/users/${id}/approve`);
@@ -167,7 +157,7 @@ function App() {
       alert('Rol actualizat!');
       fetchUsers();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Eroare');
+      alert(err.response?.data?.detail || 'Eroare la schimbarea rolului');
     }
   };
 
@@ -182,7 +172,6 @@ function App() {
     }
   };
 
-  // Filtrare
   const filteredComenzi = comenzi.filter(c => {
     const matchSearch =
       !search ||
@@ -192,7 +181,6 @@ function App() {
     return matchSearch && matchStatus;
   });
 
-  // ==================== CLIENT ====================
   const handleAddClient = async () => {
     if (!clientForm.nume || !clientForm.telefon) {
       alert('Nume și Telefon sunt obligatorii!');
@@ -229,7 +217,6 @@ function App() {
     }
   };
 
-  // ==================== COMANDĂ ====================
   const handleAddComanda = async () => {
     if (!comandaForm.client_id || !comandaForm.cost_transport_total) {
       alert('Selectează client și cost transport!');
@@ -378,7 +365,6 @@ function App() {
         <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* SIDEBAR */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-50
         w-64 bg-gray-900 border-r border-gray-800 p-6 flex flex-col
@@ -394,19 +380,11 @@ function App() {
         </div>
 
         <nav className="flex-1 space-y-2">
-          <button onClick={() => changePage('dashboard')} className={`w-full text-left px-4 py-3 rounded-xl ${page === 'dashboard' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
-            Dashboard
-          </button>
-          <button onClick={() => changePage('comenzi')} className={`w-full text-left px-4 py-3 rounded-xl ${page === 'comenzi' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
-            Comenzi
-          </button>
-          <button onClick={() => changePage('clienti')} className={`w-full text-left px-4 py-3 rounded-xl ${page === 'clienti' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
-            Clienți
-          </button>
+          <button onClick={() => changePage('dashboard')} className={`w-full text-left px-4 py-3 rounded-xl ${page === 'dashboard' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>Dashboard</button>
+          <button onClick={() => changePage('comenzi')} className={`w-full text-left px-4 py-3 rounded-xl ${page === 'comenzi' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>Comenzi</button>
+          <button onClick={() => changePage('clienti')} className={`w-full text-left px-4 py-3 rounded-xl ${page === 'clienti' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>Clienți</button>
           {isAdmin && (
-            <button onClick={() => changePage('utilizatori')} className={`w-full text-left px-4 py-3 rounded-xl ${page === 'utilizatori' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>
-              Utilizatori
-            </button>
+            <button onClick={() => changePage('utilizatori')} className={`w-full text-left px-4 py-3 rounded-xl ${page === 'utilizatori' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}>Utilizatori</button>
           )}
         </nav>
 
@@ -426,7 +404,6 @@ function App() {
         </div>
       </div>
 
-      {/* MAIN */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="lg:hidden flex items-center gap-4 p-4 border-b border-gray-800">
           <button onClick={() => setSidebarOpen(true)}><Menu size={24} /></button>
@@ -434,7 +411,6 @@ function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {/* DASHBOARD */}
           {page === 'dashboard' && (
             <div className="p-4 md:p-8">
               <h1 className="text-2xl md:text-3xl font-bold mb-6">Dashboard</h1>
@@ -461,7 +437,6 @@ function App() {
             </div>
           )}
 
-          {/* COMENZI */}
           {page === 'comenzi' && (
             <div className="p-4 md:p-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -472,7 +447,6 @@ function App() {
                   </button>
                 )}
               </div>
-
               <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-3 text-gray-400" size={18} />
@@ -488,7 +462,6 @@ function App() {
                   <option value="Anulata">Anulată</option>
                 </select>
               </div>
-
               <div className="space-y-3">
                 {filteredComenzi.length === 0 ? (
                   <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center text-gray-400">Nu există comenzi.</div>
@@ -519,7 +492,6 @@ function App() {
             </div>
           )}
 
-          {/* CLIENTI */}
           {page === 'clienti' && (
             <div className="p-4 md:p-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
@@ -555,7 +527,7 @@ function App() {
             </div>
           )}
 
-          {/* UTILIZATORI */}
+          {/* ========== UTILIZATORI ========== */}
           {page === 'utilizatori' && isAdmin && (
             <div className="p-4 md:p-8">
               <h1 className="text-2xl md:text-3xl font-bold mb-6">Utilizatori</h1>
@@ -569,15 +541,15 @@ function App() {
                         <div>
                           <p className="font-medium">{u.username}</p>
                           <p className="text-sm text-gray-400">
-                            {u.approved ? 'Aprobat' : 'În așteptare'}
+                            {u.role} • {u.approved ? 'Aprobat' : 'În așteptare'}
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <select
                             value={u.role}
                             onChange={(e) => handleChangeRole(u.id, u.username, e.target.value)}
-                            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm"
                             disabled={u.username === user?.username}
+                            className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white min-w-[120px]"
                           >
                             <option value="operator">operator</option>
                             <option value="admin">admin</option>
@@ -586,7 +558,7 @@ function App() {
                           {!u.approved && (
                             <button
                               onClick={() => handleApproveUser(u.id, u.username)}
-                              className="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 px-3 py-1.5 rounded-lg text-sm flex items-center gap-1"
+                              className="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 px-3 py-2 rounded-lg text-sm flex items-center gap-1"
                             >
                               <Check size={14} /> Aprobă
                             </button>
@@ -595,7 +567,7 @@ function App() {
                           {u.username !== user?.username && (
                             <button
                               onClick={() => handleDeleteUser(u.id, u.username)}
-                              className="bg-red-600/20 text-red-400 hover:bg-red-600/40 px-3 py-1.5 rounded-lg text-sm"
+                              className="bg-red-600/20 text-red-400 hover:bg-red-600/40 px-3 py-2 rounded-lg text-sm"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -611,7 +583,7 @@ function App() {
         </div>
       </div>
 
-      {/* ========== MODALS ========== */}
+      {/* MODALS */}
       {showClientForm && isAdmin && (
         <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
           <div className="bg-gray-900 border border-gray-700 rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-md">
@@ -701,7 +673,6 @@ function App() {
         </div>
       )}
 
-      {/* DETALII COMANDĂ */}
       {selectedComanda && (
         <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
           <div className="bg-gray-900 border border-gray-700 rounded-t-2xl sm:rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -713,7 +684,6 @@ function App() {
               </div>
               <button onClick={() => setSelectedComanda(null)}><X size={22} /></button>
             </div>
-
             {selectedComanda.piese?.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[400px]">
@@ -746,7 +716,6 @@ function App() {
             ) : (
               <p className="text-gray-400">Nu există piese.</p>
             )}
-
             <div className={`mt-6 grid gap-3 ${isAdmin ? 'grid-cols-3' : 'grid-cols-1'}`}>
               {isAdmin && (
                 <div className="bg-gray-800 rounded-xl p-3 text-center">
