@@ -147,3 +147,23 @@ def delete_user(user_id: str, db: Session = Depends(get_db), current_user: User 
     db.delete(user)
     db.commit()
     return {"message": "Utilizator șters"}
+
+class UserRoleUpdate(BaseModel):
+    role: str  # admin / operator
+
+@router.put("/users/{user_id}/role")
+def update_user_role(user_id: str, data: UserRoleUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Doar adminul poate schimba roluri")
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizatorul nu există")
+    
+    if data.role not in ["admin", "operator"]:
+        raise HTTPException(status_code=400, detail="Rol invalid. Folosește: admin sau operator")
+    
+    user.role = data.role
+    db.commit()
+    db.refresh(user)
+    return {"message": f"Rolul lui {user.username} a fost schimbat în {data.role}"}
