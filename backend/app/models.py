@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Date, ForeignKey, Integer, Enum as SQLEnum, Text
+from sqlalchemy import Column, String, Integer, Float, Date, Text, ForeignKey, Enum as SQLEnum, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base
 import uuid
