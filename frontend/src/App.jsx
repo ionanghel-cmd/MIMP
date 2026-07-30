@@ -154,9 +154,10 @@ function App() {
     if (!confirm(`Schimbi rolul lui "${username}" în "${newRole}"?`)) return;
     try {
       await api.put(`/auth/users/${id}/role`, { role: newRole });
-      alert('Rol actualizat!');
+      alert('Rol actualizat cu succes!');
       fetchUsers();
     } catch (err) {
+      console.error(err);
       alert(err.response?.data?.detail || 'Eroare la schimbarea rolului');
     }
   };
@@ -290,7 +291,6 @@ function App() {
     setSidebarOpen(false);
   };
 
-  // ==================== LOGIN / REGISTER ====================
   if (!token) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
@@ -358,7 +358,6 @@ function App() {
     );
   }
 
-  // ==================== APP PRINCIPAL ====================
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
       {sidebarOpen && (
@@ -539,26 +538,38 @@ function App() {
                     {usersList.map((u) => (
                       <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                         <div>
-                          <p className="font-medium">{u.username}</p>
+                          <p className="font-medium text-lg">{u.username}</p>
                           <p className="text-sm text-gray-400">
-                            {u.role} • {u.approved ? 'Aprobat' : 'În așteptare'}
+                            Rol: <span className="text-emerald-400 font-medium">{u.role}</span> • {u.approved ? 'Aprobat' : 'În așteptare'}
                           </p>
                         </div>
+
                         <div className="flex flex-wrap items-center gap-2">
-                          <select
-                            value={u.role}
-                            onChange={(e) => handleChangeRole(u.id, u.username, e.target.value)}
-                            disabled={u.username === user?.username}
-                            className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white min-w-[120px]"
-                          >
-                            <option value="operator">operator</option>
-                            <option value="admin">admin</option>
-                          </select>
+                          {u.username !== user?.username && (
+                            <>
+                              {u.role !== 'admin' && (
+                                <button
+                                  onClick={() => handleChangeRole(u.id, u.username, 'admin')}
+                                  className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium"
+                                >
+                                  Fă Admin
+                                </button>
+                              )}
+                              {u.role !== 'operator' && (
+                                <button
+                                  onClick={() => handleChangeRole(u.id, u.username, 'operator')}
+                                  className="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg text-sm font-medium"
+                                >
+                                  Fă Operator
+                                </button>
+                              )}
+                            </>
+                          )}
 
                           {!u.approved && (
                             <button
                               onClick={() => handleApproveUser(u.id, u.username)}
-                              className="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/40 px-3 py-2 rounded-lg text-sm flex items-center gap-1"
+                              className="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1"
                             >
                               <Check size={14} /> Aprobă
                             </button>
@@ -567,9 +578,9 @@ function App() {
                           {u.username !== user?.username && (
                             <button
                               onClick={() => handleDeleteUser(u.id, u.username)}
-                              className="bg-red-600/20 text-red-400 hover:bg-red-600/40 px-3 py-2 rounded-lg text-sm"
+                              className="bg-red-600/30 text-red-400 hover:bg-red-600/50 px-3 py-2 rounded-lg text-sm"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={16} />
                             </button>
                           )}
                         </div>
