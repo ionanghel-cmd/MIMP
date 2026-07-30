@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Package, Plus, X, Search, Trash2, Menu, LogOut, Check, Users } from 'lucide-react';
+import { Package, Plus, X, Search, Trash2, Menu, LogOut, Check } from 'lucide-react';
 
 const API_URL = 'https://good-ange-vdm-da4c7af1.koyeb.app/api';
 
@@ -56,7 +56,7 @@ function App() {
   useEffect(() => {
     if (token) {
       fetchData();
-      if (isAdmin) fetchUsers();
+      if (user?.role === 'admin') fetchUsers();
     }
   }, [token]);
 
@@ -160,6 +160,17 @@ function App() {
     }
   };
 
+  const handleChangeRole = async (id, username, newRole) => {
+    if (!confirm(`Schimbi rolul lui "${username}" în "${newRole}"?`)) return;
+    try {
+      await api.put(`/auth/users/${id}/role`, { role: newRole });
+      alert('Rol actualizat!');
+      fetchUsers();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Eroare');
+    }
+  };
+
   const handleDeleteUser = async (id, username) => {
     if (!confirm(`Ștergi utilizatorul "${username}"?`)) return;
     try {
@@ -220,7 +231,6 @@ function App() {
 
   // ==================== COMANDĂ ====================
   const handleAddComanda = async () => {
-    if (!clientForm && !comandaForm.client_id) return;
     if (!comandaForm.client_id || !comandaForm.cost_transport_total) {
       alert('Selectează client și cost transport!');
       return;
@@ -545,7 +555,7 @@ function App() {
             </div>
           )}
 
-          {/* UTILIZATORI (doar admin) */}
+          {/* UTILIZATORI */}
           {page === 'utilizatori' && isAdmin && (
             <div className="p-4 md:p-8">
               <h1 className="text-2xl md:text-3xl font-bold mb-6">Utilizatori</h1>
@@ -555,12 +565,24 @@ function App() {
                 ) : (
                   <div className="divide-y divide-gray-800">
                     {usersList.map((u) => (
-                      <div key={u.id} className="p-4 flex justify-between items-center">
+                      <div key={u.id} className="p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                         <div>
                           <p className="font-medium">{u.username}</p>
-                          <p className="text-sm text-gray-400">{u.role} • {u.approved ? 'Aprobat' : 'În așteptare'}</p>
+                          <p className="text-sm text-gray-400">
+                            {u.approved ? 'Aprobat' : 'În așteptare'}
+                          </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <select
+                            value={u.role}
+                            onChange={(e) => handleChangeRole(u.id, u.username, e.target.value)}
+                            className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm"
+                            disabled={u.username === user?.username}
+                          >
+                            <option value="operator">operator</option>
+                            <option value="admin">admin</option>
+                          </select>
+
                           {!u.approved && (
                             <button
                               onClick={() => handleApproveUser(u.id, u.username)}
@@ -569,6 +591,7 @@ function App() {
                               <Check size={14} /> Aprobă
                             </button>
                           )}
+
                           {u.username !== user?.username && (
                             <button
                               onClick={() => handleDeleteUser(u.id, u.username)}
