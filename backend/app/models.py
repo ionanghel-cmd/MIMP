@@ -55,6 +55,6 @@ class ComandaPiesa(Base):
 class User(Base):
     __tablename__ = "erp_users"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    username = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    role = Column(String, default="operator")
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, default="operator")  # admin / operator
