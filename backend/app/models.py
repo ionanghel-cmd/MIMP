@@ -57,4 +57,5 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="operator")
+    role = Column(String, default="operator")  # admin / operator
+    approved = Column(Boolean, default=False)
